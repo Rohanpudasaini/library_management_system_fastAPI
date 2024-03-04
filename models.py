@@ -1,5 +1,6 @@
 from sqlalchemy.orm import DeclarativeBase, relationship
 from sqlalchemy import Column, String, DateTime, BigInteger, Integer, ForeignKey, Boolean
+from sqlalchemy.exc import IntegrityError
 from datetime import datetime, timedelta
 from database_connection import session
 
@@ -83,6 +84,26 @@ class Book(Base):
     
     def get_from_id(self, isbn):
         return session.query(Book).where(Book.isbn_number == str(isbn)).one_or_none()
+    
+    def add(self,isbn,author,title,price,genre_id,publisher_id,available_number):
+        session.add(Book(
+                isbn_number=isbn,
+                author=author,
+                price=price,
+                title=title,
+                genre_id = genre_id,
+                publisher_id= publisher_id,
+                available_number = available_number
+                ))
+
+        try:
+            session.commit()
+            return "Book Added Sucessfully"
+        except IntegrityError as e:
+            # print(e)
+            session.rollback()
+            return "The Same Book Already exsist"
+        
     
     
     
