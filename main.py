@@ -1,8 +1,7 @@
 from typing import Annotated
 from fastapi import FastAPI, HTTPException, Query
 from models import Book, Magazine, User, Publisher, Genre
-from pydantic import BaseModel
-
+from pydantic import BaseModel, Field, StrictStr
 app = FastAPI()
 
 book = Book()
@@ -11,24 +10,44 @@ publisher = Publisher()
 genre = Genre()
 user = User()
 
+
 class BookItem(BaseModel):
-    author:str
-    isbn:Annotated[str, Query(max_length=13,min_length=13)]
-    price:int
-    title:str
-    genre_id:int
-    publisher_id:int
-    available_number:int
+    author: str
+    # isbn:Annotated[str, Query(max_length=13,min_length=13)]
+    isbn: Annotated[StrictStr, Field(
+        min_length=13,
+        max_length=13,
+        description="The ISBN number must be of 13 digit",
+    )]
+    price: Annotated[int, Field(
+        gt=0,
+        description="The price of the book must be greater than 0")]
+    title: str
+    genre_id: Annotated[int, Field(
+        gt=0,
+        description="The Genre id must be greater than 0",
+    )]
+    publisher_id: Annotated[int, Field(
+        gt=0,
+        description="The Publisher id must be greater than 0",
+    )]
+    
+    available_number: Annotated[int, Field(
+        ge=0,
+        description="The Book count must be greater than or equal 0",
+    )]
+
 
 class MagazineItem(BaseModel):
     ...
 
+
 class PublisherItem(BaseModel):
     ...
 
+
 class GenreItem(BaseModel):
     ...
-
 
 
 @app.get('/')
@@ -127,11 +146,11 @@ async def get_book(isbn: str):
 
 
 @app.post('/book/add')
-async def add_book(book_item:BookItem):
+async def add_book(book_item: BookItem):
     if await get_genre(book_item.genre_id):
         if await get_publisher(book_item.publisher_id):
             return {
-                'Result':book.add(
+                'Result': book.add(
                     book_item.isbn,
                     book_item.author,
                     book_item.title,
@@ -139,20 +158,20 @@ async def add_book(book_item:BookItem):
                     book_item.genre_id,
                     book_item.publisher_id,
                     book_item.available_number
-                    )}
+                )}
         raise HTTPException(
-        status_code=404,
-        detail={'error': {
+            status_code=404,
+            detail={'error': {
                 'error_type': 'Request Not Found',
                 'error_message': f'The Publisher with Publisher Id {book_item.publisher_id} not found'
-                }})
+            }})
     raise HTTPException(
         status_code=404,
         detail={'error': {
                 'error_type': 'Request Not Found',
                 'error_message': f'The Genre with Genre Id {book_item.genre_id} not found'
                 }})
-    
+
 
 @app.get('/magazine')
 async def list_magazines():
@@ -184,7 +203,6 @@ async def get_magazine(issn: str):
                 }})
 
 
-
 @app.get('/user')
 async def list_users():
     return {
@@ -205,9 +223,9 @@ async def get_user(username: str):
             'Error': {
                 'error_type': 'Request Not Found',
                 'error_message': f'No user with username {username}'
-                }
             }
-        )
+        }
+    )
 
 
 # @app.get('/book')
