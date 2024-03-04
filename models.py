@@ -46,6 +46,19 @@ class User(Base):
     def get_from_username(self, username):
         return session.query(User).where(User.username==username).one_or_none()
     
+    def add(self,username,email, address, phone_number):
+        session.add(User(
+            username=username,
+            email=email,
+            address=address,
+            phone_number=phone_number
+            ))
+        try:
+            session.commit()
+            return "User Added Sucessfully"
+        except IntegrityError:
+            session.rollback()
+            return "Same User Already Exsist"
   
 class Publisher(Base):
     __tablename__ = 'publishers'
@@ -61,6 +74,16 @@ class Publisher(Base):
     
     def get_from_id(self, id):
         return session.query(Publisher).where(Publisher.id == id).one_or_none()
+    
+    def add(self, name, phone_number, address):
+        session.add(Publisher(name=name,address=address,phone_number=phone_number)) 
+        try:
+            session.commit()
+            return "Publisher Added Sucessfully"
+        
+        except IntegrityError:
+            session.rollback()
+            return "Same Publisher Already Exsist"
 
 
 class Book(Base):
@@ -105,9 +128,6 @@ class Book(Base):
             return "The Same Book Already exsist"
         
     
-    
-    
-
 class Magazine(Base):
     __tablename__ = 'magazines'
     issn_number = Column(String(15), nullable=False,
@@ -128,6 +148,25 @@ class Magazine(Base):
     def get_from_id(self, issn):
         return session.query(Magazine).where(Magazine.issn_number == str(issn)).one_or_none()
     
+    def add(self,issn,editor,title,price,genre_id,publisher_id,available_number):
+        session.add(Magazine(
+                issn_number=issn,
+                editor=editor,
+                price=price,
+                title=title,
+                genre_id = genre_id,
+                publisher_id= publisher_id,
+                available_number = available_number
+                ))
+
+        try:
+            session.commit()
+            return "Magazine Added Sucessfully"
+        except IntegrityError as e:
+            # print(e)
+            session.rollback()
+            return "The Same Magazine Already exsist"
+    
 
 class Genre(Base):
     __tablename__ = 'genre'
@@ -141,8 +180,18 @@ class Genre(Base):
     def get_all(self):
         return session.query(Genre).all()
     
+    
     def get_from_id(self, id):
         return session.query(Genre).where(Genre.id == id).one_or_none()
+    
+    def add(self,name):
+        session.add(Genre(name=name))
+        try:
+            session.commit()
+            return "Genre Added Sucessfully"
+        except IntegrityError:
+            session.rollback()
+            return "Same Genre Already Exsist"
     
 class Librarian(Base):
     __tablename__ = 'librarians'
