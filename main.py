@@ -1,7 +1,9 @@
 from typing import Annotated
-from fastapi import FastAPI, HTTPException, Query
-from models import Book, Magazine, User, Publisher, Genre
-from pydantic import BaseModel, Field, StrictInt, StrictStr
+from fastapi import FastAPI, HTTPException, Depends
+from models import Book, Magazine, User, Publisher, Genre, Librarian
+from pydantic import BaseModel, EmailStr, Field, StrictInt, StrictStr
+from auth.jwt_handler import decodJWT, encodeJWT
+from auth.jwt_bearer import JwtBearer
 app = FastAPI()
 
 book = Book()
@@ -9,6 +11,7 @@ magazine = Magazine()
 publisher = Publisher()
 genre = Genre()
 user = User()
+librarian = Librarian()
 
 
 class BookItem(BaseModel):
@@ -72,6 +75,11 @@ class PublisherItem(BaseModel):
     address: str
 
 
+class LibrarianLogin(BaseModel):
+    email:EmailStr = Field(default=None)
+    password:str = Field(default=None)
+
+
 class GenreItem(BaseModel):
     name: str
 
@@ -83,7 +91,7 @@ class UserItem(BaseModel):
     phone_number: Annotated[str, Field(max_length=10, min_length=10)]
 
 
-@app.get('/')
+@app.get('/', tags=['Home'])
 async def home_route():
     return {
         'Message': 'Welcome to the library management system using \
@@ -98,14 +106,25 @@ FastAPI Please find all the available path below',
     }
 
 
-@app.get('/publisher')
+@app.get('/publisher', tags=['Publisher'])
 async def list_publishers():
     return {
         'Publishers': publisher.get_all()
     }
 
 
-@app.get('/publisher/{publisherId}')
+@app.get('/publisher/add', tags=['Publisher'])
+async def add_publisher_menu():
+    return {
+        'expected_format': {
+            "name": "string",
+            "phone_number": "1234567890",
+            "address": "string"
+        }
+    }
+
+
+@app.get('/publisher/{publisherId}', tags=['Publisher'])
 async def get_publisher(publisherId: int):
     publisherFound = publisher.get_from_id(publisherId)
     if publisherFound:
@@ -123,7 +142,7 @@ async def get_publisher(publisherId: int):
     )
 
 
-@app.post('/publisher/add')
+@app.post('/publisher/add',dependencies=[Depends(JwtBearer())], tags=['Publisher'])
 async def add_publisher(publisherItem: PublisherItem):
     return {
         'result': publisher.add(
@@ -134,25 +153,23 @@ async def add_publisher(publisherItem: PublisherItem):
     }
 
 
-@app.get('/publisher/add')
-async def add_publisher_menu():
-    return {
-        'expected_format': {
-            "name": "string",
-            "phone_number": "1234567890",
-            "address": "string"
-        }
-    }
-
-
-@app.get('/genre')
+@app.get('/genre', tags=['Genre'])
 async def list_genre():
     return {
         'Genre': genre.get_all()
     }
 
 
-@app.get('/genre/{genreId}')
+@app.get('/genre/add', tags=['Genre'])
+async def add_genre_menu():
+    return {
+        'expected_format': {
+            "name": "Genre_name"
+        }
+    }
+
+
+@app.get('/genre/{genreId}', tags=['Genre'])
 async def get_genre(genreId: int):
     publisherFound = genre.get_from_id(genreId)
     if publisherFound:
@@ -170,7 +187,7 @@ async def get_genre(genreId: int):
     )
 
 
-@app.post('/genre/add')
+@app.post('/genre/add',dependencies=[Depends(JwtBearer())], tags=['Genre'])
 async def add_genre(genreItem: GenreItem):
     return {
         'result': genre.add(
@@ -179,23 +196,15 @@ async def add_genre(genreItem: GenreItem):
     }
 
 
-@app.get('/genre/add')
-async def add_genre_menu():
-    return {
-        'expected_format': {
-            "name": "Genre_name"
-        }
-    }
 
-
-@app.get('/book')
+@app.get('/book', tags=['Book'])
 async def list_books():
     return {
         'Books': book.get_all()
     }
 
 
-@app.post('/book/add')
+@app.post('/book/add',dependencies=[Depends(JwtBearer())], tags=['Book'])
 async def add_book(book_item: BookItem):
     if await get_genre(book_item.genre_id):
         if await get_publisher(book_item.publisher_id):
@@ -223,7 +232,7 @@ async def add_book(book_item: BookItem):
                 }})
 
 
-@app.get('/book/add')
+@app.get('/book/add', tags=['Book'])
 async def add_book_menu():
     return {
         'expected_format': {
@@ -238,7 +247,7 @@ async def add_book_menu():
     }
 
 
-@app.get('/book/{isbn}')
+@app.get('/book/{isbn}', tags=['Book'])
 async def get_book(isbn: str):
     if len(isbn) != 13:
         raise HTTPException(
@@ -262,14 +271,14 @@ async def get_book(isbn: str):
 
 
 
-@app.get('/magazine')
+@app.get('/magazine', tags=['Magazine'])
 async def list_magazines():
     return {
         'Magazines': magazine.get_all()
     }
 
 
-@app.post('/magazine/add')
+@app.post('/magazine/add',dependencies=[Depends(JwtBearer())], tags=['Magazine'])
 async def add_magazine(magazine_item: MagazineItem):
     if await get_genre(magazine_item.genre_id):
         if await get_publisher(magazine_item.publisher_id):
@@ -297,7 +306,7 @@ async def add_magazine(magazine_item: MagazineItem):
                 }})
 
 
-@app.get('/magazine/add')
+@app.get('/magazine/add', tags=['Magazine'])
 async def add_magazine_menu():
     return {
         'expected_format': {
@@ -312,7 +321,7 @@ async def add_magazine_menu():
     }
 
 
-@app.get('/magazine/{issn}')
+@app.get('/magazine/{issn}', tags=['Magazine'])
 async def get_magazine(issn: str):
     if len(issn) != 8:
         raise HTTPException(
@@ -336,14 +345,14 @@ async def get_magazine(issn: str):
 
 
 
-@app.get('/user')
+@app.get('/user',dependencies=[Depends(JwtBearer())], tags=['User'])
 async def list_users():
     return {
         'Users': user.get_all()
     }
 
 
-@app.get('/user/add')
+@app.get('/user/add',dependencies=[Depends(JwtBearer())], tags=['User'])
 async def add_user():
     return {
         'expected_format': {
@@ -355,7 +364,7 @@ async def add_user():
     }
 
 
-@app.get('/user/{username}')
+@app.get('/user/{username}',dependencies=[Depends(JwtBearer())], tags=['User'])
 async def get_user(username: str):
     userFound = user.get_from_username(username)
     if userFound:
@@ -373,7 +382,7 @@ async def get_user(username: str):
     )
 
 
-@app.post('/user/add')
+@app.post('/user/add',dependencies=[Depends(JwtBearer())] ,tags=['User'])
 async def add_user(userItem: UserItem):
     return user.add(
         userItem.username,
@@ -382,6 +391,28 @@ async def add_user(userItem: UserItem):
         userItem.phone_number
     )
 
+@app.get('/librarian', tags=['Librarian'])
+async def list_librarians():
+    return {
+        'Users': librarian.get_all()
+    }
+
+@app.post('/librarian/login', tags=['Librarian'])
+async def librarian_login(login_schema:LibrarianLogin):
+    valid = librarian.validate_librarian(login_schema.email, login_schema.password)
+    if valid:
+        return encodeJWT(login_schema.password)
+    else:
+        return HTTPException(
+        status_code=401,
+        detail={
+            'Error': {
+                'error_type': 'Request Not Found',
+                'error_message': 'Incorrect email or password'
+            }
+        }
+    )
+    
 
 
 

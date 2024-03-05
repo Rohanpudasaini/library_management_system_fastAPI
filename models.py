@@ -201,6 +201,18 @@ class Librarian(Base):
     password = Column(String(50), nullable=False)
     address = Column(String(200), nullable=False)
     phone_number = Column(BigInteger())
+    
+    def get_all(self):
+        result = session.query(
+            Librarian.id, 
+            Librarian.name, 
+            Librarian.email
+        ).all()
+        return [dict(id=row[0], name=row[1], email=row[2]) for row in result]
+    
+    def validate_librarian(self, email:str,password:str):
+        return session.query(Librarian).where(Librarian.email==email, Librarian.password == password).one_or_none()
+    
 
 
 
