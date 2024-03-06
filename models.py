@@ -2,7 +2,8 @@ from sqlalchemy.orm import DeclarativeBase, relationship
 from sqlalchemy import Column, String, DateTime, BigInteger, Integer, ForeignKey, Boolean
 from sqlalchemy.exc import IntegrityError
 from datetime import datetime, timedelta
-from database_connection import session
+from database_connection import session, try_session_commit
+from fastapi import HTTPException
 
 class Base(DeclarativeBase):
     pass
@@ -58,7 +59,17 @@ class User(Base):
             return "User Added Sucessfully"
         except IntegrityError:
             session.rollback()
-            return "Same User Already Exsist"
+            # return "Same User Already Exsist"
+            raise HTTPException(status_code=400,
+                detail= {
+                    "error":{
+                        "error_type": "Bad Request",
+                        "error_message": f"User with username {username} already exsist."
+                        }
+                    })
+    
+    
+        
   
 class Publisher(Base):
     __tablename__ = 'publishers'
@@ -83,7 +94,13 @@ class Publisher(Base):
         
         except IntegrityError:
             session.rollback()
-            return "Same Publisher Already Exsist"
+            raise HTTPException(status_code=400,
+                detail= {
+                    "error":{
+                        "error_type": "Bad Request",
+                        "error_message": f"Publisher named {name} already exsist."
+                        }
+                    })
 
 
 class Book(Base):
@@ -125,7 +142,15 @@ class Book(Base):
         except IntegrityError as e:
             # print(e)
             session.rollback()
-            return "The Same Book Already exsist"
+            # return "The Same Book Already exsist"
+            raise HTTPException(status_code=400,
+                detail= {
+                    "error":{
+                        "error_type": "Bad Request",
+                        "error_message": f"Book with ISBN number {isbn} already exsist."
+                        }
+                    })
+        
         
     
 class Magazine(Base):
@@ -165,7 +190,14 @@ class Magazine(Base):
         except IntegrityError as e:
             # print(e)
             session.rollback()
-            return "The Same Magazine Already exsist"
+            # return "The Same Magazine Already exsist"
+            raise HTTPException(status_code=400,
+                detail= {
+                    "error":{
+                        "error_type": "Bad Request",
+                        "error_message": f"Magazine with ISSN number {issn} already exsist."
+                        }
+                    })
     
 
 class Genre(Base):
@@ -191,7 +223,14 @@ class Genre(Base):
             return "Genre Added Sucessfully"
         except IntegrityError:
             session.rollback()
-            return "Same Genre Already Exsist"
+            # return "Same Genre Already Exsist"
+            raise HTTPException(status_code=400,
+                detail= {
+                    "error":{
+                        "error_type": "Bad Request",
+                        "error_message": f"Genre with name {name} already exsist."
+                        }
+                    })
     
 class Librarian(Base):
     __tablename__ = 'librarians'
@@ -213,7 +252,56 @@ class Librarian(Base):
     def validate_librarian(self, email:str,password:str):
         return session.query(Librarian).where(Librarian.email==email, Librarian.password == password).one_or_none()
     
+    
+    def user_add_book(self,username, isbn_number, days=15):
+        book_to_add = session.query(Book).where(
+            Book.isbn_number == isbn_number).one_or_none()
+        if not book_to_add:
+            raise HTTPException(status_code=404,
+                detail= {
+                    "error":{
+                        "error_type": "Request Not Found",
+                        "error_message": f"No Book with the ISBN number {isbn_number}"
+                        }
+                    })
+        
+        user_object = User.get_from_username(User,username)
+        
+        user_object.book_id += [book_to_add]
+        book_to_add.available_number -= 1
+        user_already_exsist = session.query(Record).where(
+            Record.book_id == book_to_add.isbn_number,
+            Record.member_id == user_object.id,
+            Record.returned == False
+        ).count()
+        if not user_already_exsist and book_to_add.available_number > 0:
+            book_record = Record(
+                user=user_object, book=book_to_add,
+                genre=book_to_add.genre, issued_date=datetime.utcnow().date(),
+                expected_return_date=(
+                    datetime.utcnow().date() + timedelta(days=days))
+            )
+            session.add(book_record)
+            try_session_commit(session)
+        elif book_to_add.available_number == 0:
+            # return CustomDatabaseException(
+            #     "This book is curently out of stock, please check again after some days.")
+            raise HTTPException(status_code=409,
+                detail= {
+                    "error":{
+                        "error_type": "Insufficient Resources",
+                        "error_message": "This book is curently out of stock, please check again after some days."
+                        }
+                    })
 
+        else:
+            raise HTTPException(status_code=400,
+                detail= {
+                    "error":{
+                        "error_type": "Bad Request",
+                        "error_message": "You have already issued this same book already."
+                        }
+                    })
 
 
 

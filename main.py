@@ -40,6 +40,16 @@ class BookItem(BaseModel):
     )]
 
 
+class BorrowObject(BaseModel):
+    username:str
+    isbn: Annotated[StrictStr, Field(
+        min_length=13,
+        max_length=13,
+        description="The ISBN number must be of 13 digit",
+    )]
+    days: int = 15
+
+
 class MagazineItem(BaseModel):
     editor: str
     title: str
@@ -365,6 +375,10 @@ async def add_user():
     }
 
 
+@app.post('/user/borrow_book',dependencies=[Depends(JwtBearer())], tags=['User'])
+async def user_borrow_book(borrowObject:BorrowObject):
+    librarian.user_add_book(borrowObject.username,borrowObject.isbn)
+
 @app.get('/user/{username}',dependencies=[Depends(JwtBearer())], tags=['User'])
 async def get_user(username: str):
     userFound = user.get_from_username(username)
@@ -435,6 +449,9 @@ async def get_new_accessToken(refreshToken:str):
             }
         }
     )
+
+
+
 
 # @app.get('/book')
 # async def book_route(isbn: Annotated[str | None, Query(min_length=13,max_length=13)] = None):
