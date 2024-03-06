@@ -1,4 +1,5 @@
 import os
+from fastapi import HTTPException
 from sqlalchemy import text, create_engine, URL, inspect
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import NoResultFound, IntegrityError
@@ -32,9 +33,13 @@ def try_session_commit(session):
     except IntegrityError as e:
         print(e._message())
         session.rollback()
-        print("Rolling back all the transaction and redirecting to\
-            main menu, please wait")
-        time.sleep(5)
+        raise HTTPException(status_code=500,
+                detail= {
+                    "error":{
+                        "error_type": "Internal Error",
+                        "error_message": "Please check your request"
+                        }
+                    })
 
 class CustomDatabaseException(Exception):
 

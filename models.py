@@ -45,7 +45,16 @@ class User(Base):
         return session.query(User).all()
     
     def get_from_username(self, username):
-        return session.query(User).where(User.username==username).one_or_none()
+        user_object =  session.query(User).where(User.username==username).one_or_none()
+        if not user_object:
+            raise HTTPException(status_code=404,
+                detail= {
+                    "error":{
+                        "error_type": "Request Not Found",
+                        "error_message": f"No User with the Username {username}"
+                        }
+                    })
+        return user_object
     
     def add(self,username,email, address, phone_number):
         session.add(User(
@@ -302,7 +311,60 @@ class Librarian(Base):
                         "error_message": "You have already issued this same book already."
                         }
                     })
+    
+    
+    def user_return_book(self,username, isbn_number):
 
+            book_to_return = session.query(Book).where(
+                Book.isbn_number == isbn_number).one_or_none()
+            if not book_to_return:
+                
+                raise HTTPException(status_code=404,
+                detail= {
+                    "error":{
+                        "error_type": "Request Not Found",
+                        "error_message": f"No Book with the ISBN number {isbn_number}"
+                        }
+                    })
+            user_object = User.get_from_username(User,username)
+            got_record = session.query(Record).where(
+                Record.member_id == user_object.id,
+                Record.book_id == isbn_number,
+                Record.returned == False
+            ).one_or_none()
+            fine = 0
+            if got_record:
+                books_record = session.query(Record).filter(
+                    Record.member_id == user_object.id,
+                    Record.book_id == isbn_number,
+                    Record.returned == False
+                ).one()
+                if books_record.expected_return_date.date() < datetime.utcnow().date():
+
+                    extra_days = (datetime.utcnow().date() -
+                                  books_record.expected_return_date.date()).days
+                    if extra_days > 3:
+                        fine = extra_days * 3
+                book_to_return.available_number += 1
+                books_record.returned = True
+                books_record.returned_date = datetime.utcnow().date()
+                session.query(MemberBook).filter(
+                    MemberBook.book_id == isbn_number,
+                    MemberBook.user_id == user_object.id
+                ).delete()
+                try_session_commit(session)
+                return fine
+
+            else:
+                raise HTTPException(status_code=404,
+                detail= {
+                    "error":{
+                        "error_type": "Request Not Found",
+                        "error_message": f"User {username} haven't borrowed {book_to_return.title}"
+                        }
+                    })
+            
+            
 
 
 class Record(Base):

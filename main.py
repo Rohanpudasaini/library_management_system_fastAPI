@@ -50,6 +50,15 @@ class BorrowObject(BaseModel):
     days: int = 15
 
 
+class ReturnObject(BaseModel):
+    username:str
+    isbn: Annotated[StrictStr, Field(
+        min_length=13,
+        max_length=13,
+        description="The ISBN number must be of 13 digit",
+    )]
+    
+
 class MagazineItem(BaseModel):
     editor: str
     title: str
@@ -378,6 +387,20 @@ async def add_user():
 @app.post('/user/borrow_book',dependencies=[Depends(JwtBearer())], tags=['User'])
 async def user_borrow_book(borrowObject:BorrowObject):
     librarian.user_add_book(borrowObject.username,borrowObject.isbn)
+
+
+@app.post('/user/return_book',dependencies=[Depends(JwtBearer())], tags=['User'])
+async def user_borrow_book(returnObject:ReturnObject):
+    fine = librarian.user_return_book(returnObject.username,returnObject.isbn)
+    if fine:
+        return {
+            "Fine Remaning": {
+                "Fine Ammount": fine,
+                "Message": f"{returnObject.username} have {fine} rs remaning"
+            }
+        }
+    return "Book Returned Sucessfully"
+
 
 @app.get('/user/{username}',dependencies=[Depends(JwtBearer())], tags=['User'])
 async def get_user(username: str):
