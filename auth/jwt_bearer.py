@@ -28,10 +28,7 @@ class JwtBearer(HTTPBearer):
     def verify_jwt(self, jwtoken:str):
         isTokenValid:bool = False
         payload = decodJWT(jwtoken)
-        print(payload)
         
         if payload:
             isTokenValid = True
         return isTokenValid
-            
-        # return await super().__call__(request)

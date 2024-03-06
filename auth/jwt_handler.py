@@ -5,22 +5,35 @@ from decouple import config
 JWT_SECRET = config('secret')
 JWT_ALGORITHM = config('algorithm')
 
-# def token_response(token:str):
-    # return {
-    #     'access token': token
-    # }
+
     
-def encodeJWT(userID: str):
+def encodeAccessJWT(userID: str):
     payload ={
         'userID': userID,
-        'expiry': time.time() + 3600
+        'expiry': time.time() + 1200
     }
     
-    token = jwt.encode(payload, JWT_SECRET,JWT_ALGORITHM)
-    return {
-        'access token': token
+    return jwt.encode(payload, JWT_SECRET,JWT_ALGORITHM)
+    
+    
+
+def encodeRefreshJWT(userID: str):
+    payload ={
+        'userID': userID,
+        'expiry': time.time() + 604800
     }
     
+    return jwt.encode(payload, JWT_SECRET,JWT_ALGORITHM)
+
+    
+
+def generateToken(userID:str):
+    return{
+        'access_token': encodeAccessJWT(userID),
+        'refresh_token': encodeRefreshJWT(userID)
+    } 
+
+
 def decodJWT(token:str):
     try:
         decode_token = jwt.decode(token,JWT_SECRET,JWT_ALGORITHM)

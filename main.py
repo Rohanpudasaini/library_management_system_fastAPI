@@ -2,7 +2,7 @@ from typing import Annotated
 from fastapi import FastAPI, HTTPException, Depends
 from models import Book, Magazine, User, Publisher, Genre, Librarian
 from pydantic import BaseModel, EmailStr, Field, StrictInt, StrictStr
-from auth.jwt_handler import decodJWT, encodeJWT
+from auth.jwt_handler import decodJWT, encodeAccessJWT, generateToken
 from auth.jwt_bearer import JwtBearer
 app = FastAPI()
 
@@ -102,6 +102,7 @@ FastAPI Please find all the available path below',
             'magazine': '/magazine/',
             'publisher': '/publisher/',
             'genre': '/genre/',
+            'librarian': '/librarian'
         }
     }
 
@@ -401,9 +402,12 @@ async def list_librarians():
 async def librarian_login(login_schema:LibrarianLogin):
     valid = librarian.validate_librarian(login_schema.email, login_schema.password)
     if valid:
-        return encodeJWT(login_schema.password)
+        # token = encodeAccessJWT(login_schema.password)
+        token = generateToken(login_schema.email)
+        token.update({'email':login_schema.email})
+        return token
     else:
-        return HTTPException(
+        raise HTTPException(
         status_code=401,
         detail={
             'Error': {
@@ -413,8 +417,15 @@ async def librarian_login(login_schema:LibrarianLogin):
         }
     )
     
-
-
+@app.get('/librarian/login/refresh', tags=['Librarian'])
+async def get_new_accessToken(refreshToken:str):
+    token = decodJWT(refreshToken)
+    # return token
+    if token:
+        return{
+        'access_token': encodeAccessJWT(token["userID"]),
+        'userID': token["userID"]
+}
 
 # @app.get('/book')
 # async def book_route(isbn: Annotated[str | None, Query(min_length=13,max_length=13)] = None):
