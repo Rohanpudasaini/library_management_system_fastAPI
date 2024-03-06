@@ -424,8 +424,17 @@ async def get_new_accessToken(refreshToken:str):
     if token:
         return{
         'access_token': encodeAccessJWT(token["userID"]),
-        'userID': token["userID"]
-}
+        'userID': token["userID"]    
+        }
+    raise HTTPException(
+        status_code=403,
+        detail={
+            'Error': {
+                'error_type': 'Expired Or Invalid Token',
+                'error_message': 'Invalid or expired refresh token'
+            }
+        }
+    )
 
 # @app.get('/book')
 # async def book_route(isbn: Annotated[str | None, Query(min_length=13,max_length=13)] = None):

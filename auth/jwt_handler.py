@@ -39,4 +39,6 @@ def decodJWT(token:str):
         decode_token = jwt.decode(token,JWT_SECRET,JWT_ALGORITHM)
         return decode_token if decode_token['expiry'] >= time.time() else None
     except jwt.InvalidTokenError:
+        print("Error")
         return {}
+    
