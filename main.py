@@ -40,7 +40,7 @@ class BookItem(BaseModel):
     )]
 
 
-class BorrowObject(BaseModel):
+class BorrowBookObject(BaseModel):
     username:str
     isbn: Annotated[StrictStr, Field(
         min_length=13,
@@ -50,12 +50,30 @@ class BorrowObject(BaseModel):
     days: int = 15
 
 
-class ReturnObject(BaseModel):
+class ReturnBookObject(BaseModel):
     username:str
     isbn: Annotated[StrictStr, Field(
         min_length=13,
         max_length=13,
         description="The ISBN number must be of 13 digit",
+    )]
+    
+class BorrowMagazineObject(BaseModel):
+    username:str
+    issn: Annotated[StrictStr, Field(
+        min_length=8,
+        max_length=8,
+        description="The ISSN number must be of 8 digit",
+    )]
+    days: int = 15
+
+
+class ReturnMagazineObject(BaseModel):
+    username:str
+    issn: Annotated[StrictStr, Field(
+        min_length=8,
+        max_length=8,
+        description="The ISSN number must be of 8 digit",
     )]
     
 
@@ -385,12 +403,36 @@ async def add_user():
 
 
 @app.post('/user/borrow_book',dependencies=[Depends(JwtBearer())], tags=['User'])
-async def user_borrow_book(borrowObject:BorrowObject):
+async def user_borrow_book(borrowObject:BorrowBookObject):
     librarian.user_add_book(borrowObject.username,borrowObject.isbn)
+    return {
+        "Sucess": "Book Borrowed Sucessfully"
+    }
+
+
+@app.post('/user/borrow_magazine',dependencies=[Depends(JwtBearer())], tags=['User'])
+async def user_borrow_magazine(borrowObject:BorrowMagazineObject):
+    librarian.user_add_magazine(borrowObject.username,borrowObject.issn)
+    return {
+        "Sucess": "Magazine Borrowed Sucessfully"
+    }
+
+
+@app.post('/user/return_magazine',dependencies=[Depends(JwtBearer())], tags=['User'])
+async def user_borrow_magazine(returnObject:ReturnMagazineObject):
+    fine = librarian.user_return_magazine(returnObject.username,returnObject.issn)
+    if fine:
+        return {
+            "Fine Remaning": {
+                "Fine Ammount": fine,
+                "Message": f"{returnObject.username} have {fine} rs remaning"
+            }
+        }
+    return "Magazine Returned Sucessfully"
 
 
 @app.post('/user/return_book',dependencies=[Depends(JwtBearer())], tags=['User'])
-async def user_borrow_book(returnObject:ReturnObject):
+async def user_borrow_book(returnObject:ReturnBookObject):
     fine = librarian.user_return_book(returnObject.username,returnObject.isbn)
     if fine:
         return {

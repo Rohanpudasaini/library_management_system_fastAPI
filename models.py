@@ -77,9 +77,7 @@ class User(Base):
                         }
                     })
     
-    
-        
-  
+            
 class Publisher(Base):
     __tablename__ = 'publishers'
     id = Column(Integer, primary_key=True)
@@ -161,7 +159,6 @@ class Book(Base):
                     })
         
         
-    
 class Magazine(Base):
     __tablename__ = 'magazines'
     issn_number = Column(String(15), nullable=False,
@@ -363,9 +360,112 @@ class Librarian(Base):
                         "error_message": f"User {username} haven't borrowed {book_to_return.title}"
                         }
                     })
-            
-            
+                
+                
+    def user_return_magazine(self, username, issn_number):
+        
+        magazine_to_return = session.query(Magazine).where(
+            Magazine.issn_number == issn_number).one_or_none()
 
+        if not magazine_to_return:
+            raise HTTPException(status_code=404,
+                detail= {
+                    "error":{
+                        "error_type": "Request Not Found",
+                        "error_message": f"No Magazine with the ISSN number {issn_number}"
+                        }
+                    })
+            
+        user_object = User.get_from_username(User, username)
+        got_record = session.query(Record).where(
+            Record.member_id == user_object.id,
+            Record.magazine_id == issn_number,
+            Record.returned == False
+        ).one_or_none()
+        fine=0
+        if got_record:
+            magazine_record = session.query(Record).filter(
+                Record.member_id == user_object.id,
+                Record.magazine_id == issn_number,
+                Record.returned == False
+            ).one()
+            if magazine_record.expected_return_date.date() < datetime.utcnow().date():
+
+                extra_days = (magazine_record.expected_return_date.date(
+                ) - datetime.utcnow().date()).days
+                if extra_days > 3:
+                    fine = extra_days * 3
+                    
+
+            magazine_to_return.available_number += 1
+            magazine_record.returned = True
+            magazine_record.returned_date = datetime.utcnow().date()
+
+            session.query(MemberMagazine).filter(
+                MemberMagazine.magazine_id == issn_number,
+                MemberMagazine.user_id == user_object.id
+            ).delete()
+            try_session_commit(session) 
+            return fine
+        else:
+            raise HTTPException(status_code=404,
+                detail= {
+                    "error":{
+                        "error_type": "Request Not Found",
+                        "error_message": f"User {username} haven't borrowed {magazine_to_return.title}"
+                        }
+                    })
+                   
+                 
+    def user_add_magazine(self,username, issn_number, days=15):
+        
+        magazine_to_add = session.query(Magazine).where(
+            Magazine.issn_number == issn_number).one_or_none()
+        if not magazine_to_add:
+            raise HTTPException(status_code=404,
+                detail= {
+                    "error":{
+                        "error_type": "Request Not Found",
+                        "error_message": f"No Magazine with the ISSN number {issn_number}"
+                        }
+                    })
+        user_object = User.get_from_username(User, username)
+        user_object.magazine_id += [magazine_to_add]
+        user_already_exsist = session.query(Record).where(
+            Record.magazine_id == magazine_to_add.issn_number,
+            Record.member_id == user_object.id,
+            Record.returned == False
+        ).count()
+        
+        if not user_already_exsist and magazine_to_add.available_number > 0:
+            magazine_to_add.available_number -= 1
+            magazine_record = Record(
+                user=user_object,
+                magazine=magazine_to_add,
+                genre=magazine_to_add.genre,
+                issued_date=datetime.utcnow().date(),
+                expected_return_date=(
+                    datetime.utcnow().date() + timedelta(days=days))
+            )
+            session.add(magazine_record)
+            try_session_commit(session)
+        elif magazine_to_add.available_number == 0:
+            raise HTTPException(status_code=409,
+                detail= {
+                    "error":{
+                        "error_type": "Insufficient Resources",
+                        "error_message": "This Magazine is curently out of stock, please check again after some days."
+                        }
+                    })
+        else:
+            raise HTTPException(status_code=400,
+                detail= {
+                    "error":{
+                        "error_type": "Bad Request",
+                        "error_message": "You have already issued this same Magazine already."
+                        }
+                    })
+            
 
 class Record(Base):
     __tablename__ = 'records'
