@@ -2,7 +2,7 @@ from typing import Annotated
 from fastapi import FastAPI, HTTPException, Depends
 from models import Book, Magazine, User, Publisher, Genre, Librarian
 from pydantic import BaseModel, EmailStr, Field, StrictInt, StrictStr
-from auth.jwt_handler import decodJWT, encodeAccessJWT, generateToken
+from auth.jwt_handler import decodJWT, decodRefreshJWT, encodeAccessJWT, generateToken
 from auth.jwt_bearer import JwtBearer
 app = FastAPI()
 
@@ -498,7 +498,7 @@ async def librarian_login(login_schema:LibrarianLogin):
     
 @app.get('/librarian/login/refresh', tags=['Librarian'])
 async def get_new_accessToken(refreshToken:str):
-    token = decodJWT(refreshToken)
+    token = decodRefreshJWT(refreshToken)
     # return token
     if token:
         return{
