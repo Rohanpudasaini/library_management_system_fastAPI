@@ -402,6 +402,15 @@ async def add_user():
     }
 
 
+@app.get('/user/borrowed',dependencies=[Depends(JwtBearer())], tags=['User'])
+async def borrowed_items(username:str):
+    return {
+        "Username": username,
+        'Borrowed': user.get_all_borrowed(username)
+        
+    }
+
+
 @app.post('/user/borrow_book',dependencies=[Depends(JwtBearer())], tags=['User'])
 async def user_borrow_book(borrowObject:BorrowBookObject):
     librarian.user_add_book(borrowObject.username,borrowObject.isbn)
@@ -444,12 +453,17 @@ async def user_borrow_book(returnObject:ReturnBookObject):
     return "Book Returned Sucessfully"
 
 
+
+
 @app.get('/user/{username}',dependencies=[Depends(JwtBearer())], tags=['User'])
 async def get_user(username: str):
     userFound = user.get_from_username(username)
-    if userFound:
+    if userFound:    
         return {
-            'User': userFound
+            'User': {
+                "user_details" : userFound,
+                
+                }
         }
     raise HTTPException(
         status_code=404,

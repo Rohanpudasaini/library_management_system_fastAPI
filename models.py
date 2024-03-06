@@ -44,6 +44,21 @@ class User(Base):
     def get_all(self):
         return session.query(User).all()
     
+    
+    def get_all_borrowed(self, username):
+        userFound = self.get_from_username(username)
+        if userFound.book_id:
+            book = [book.title for book in userFound.book_id]
+            
+        if userFound.magazine_id:
+            magazine = [magazine.title for magazine in userFound.magazine_id]
+        return {
+            "Book": book,
+            "Magazine": magazine
+            
+        }
+    
+    
     def get_from_username(self, username):
         user_object =  session.query(User).where(User.username==username).one_or_none()
         if not user_object:
