@@ -5,7 +5,6 @@
     <em>Simple Library management system to learn FastAPI</em>
 </p>
 
-
 # Library Management System Using FASTAPI
 
 This is a simple library management system's api created using FastAPI for the endpoint, SQLAlchemy for ORM and PostgreSQL for the backend database.
@@ -81,3 +80,7 @@ This is a simple library management system's api created using FastAPI for the e
 - [ ] Add option to update or remove members and books or magazines.
 - [ ]  Testing
 - [ ] User login (Maybe)
+  
+## Conclusion
+
+   This is a simple FastApi example and it is nowhere near complete, This is created with sole purpose of understanding the fast api, router and authentication using JWT token.
