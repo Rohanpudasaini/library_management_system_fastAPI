@@ -5,24 +5,30 @@ from datetime import datetime, timedelta
 from database_connection import session, try_session_commit
 from fastapi import HTTPException
 
+
 class Base(DeclarativeBase):
+    """Base class that inherit from DeclarativeBase of SQLAlchemy"""
     pass
 
 
+# Assocication table schema of member and book
 class MemberBook(Base):
     __tablename__ = 'member_book'
     id = Column(Integer, primary_key=True)
     user_id = Column('user_id', Integer, ForeignKey('users.id'))
     book_id = Column('book_id', String, ForeignKey('books.isbn_number'))
 
-    
+
+# Assocication table schema of member and magazine    
 class MemberMagazine(Base):
     __tablename__ = 'member_magazine'
     id = Column(Integer, primary_key=True)
     user_id = Column('user_id', Integer, ForeignKey('users.id'))
     magazine_id = Column('magazine_id', String,
                          ForeignKey('magazines.issn_number'))
-    
+   
+   
+# Table schema of User/member    
 class User(Base):
     __tablename__ = 'users'
     id = Column(Integer(), primary_key=True)
@@ -45,6 +51,7 @@ class User(Base):
         return session.query(User).all()
     
     
+    # Get only borrowed books or magazine
     def get_all_borrowed(self, username):
         userFound = self.get_from_username(username)
         if userFound.book_id:
@@ -60,6 +67,10 @@ class User(Base):
     
     
     def get_from_username(self, username):
+        """
+        Give back the database instance of the user object
+        from username
+        """
         user_object =  session.query(User).where(User.username==username).one_or_none()
         if not user_object:
             raise HTTPException(status_code=404,
@@ -70,6 +81,7 @@ class User(Base):
                         }
                     })
         return user_object
+    
     
     def add(self,username,email, address, phone_number):
         session.add(User(
@@ -83,7 +95,7 @@ class User(Base):
             return "User Added Sucessfully"
         except IntegrityError:
             session.rollback()
-            # return "Same User Already Exsist"
+            # Same User Already Exsist
             raise HTTPException(status_code=400,
                 detail= {
                     "error":{
@@ -92,7 +104,8 @@ class User(Base):
                         }
                     })
     
-            
+
+# Table schema of publisher   
 class Publisher(Base):
     __tablename__ = 'publishers'
     id = Column(Integer, primary_key=True)
@@ -105,8 +118,14 @@ class Publisher(Base):
     def get_all(self):
         return session.query(Publisher).all()
     
+    
     def get_from_id(self, id):
+        """
+        Get a database instance of publisher object with given id
+        Return publisher object or None
+        """
         return session.query(Publisher).where(Publisher.id == id).one_or_none()
+    
     
     def add(self, name, phone_number, address):
         session.add(Publisher(name=name,address=address,phone_number=phone_number)) 
@@ -125,6 +144,7 @@ class Publisher(Base):
                     })
 
 
+# Table schema of Book
 class Book(Base):
     __tablename__ = 'books'
     isbn_number = Column(String(15), nullable=False,
@@ -145,6 +165,10 @@ class Book(Base):
         return books
     
     def get_from_id(self, isbn):
+        """
+        Get a database instance of book object with given isbn number
+        Return book object or None
+        """
         return session.query(Book).where(Book.isbn_number == str(isbn)).one_or_none()
     
     def add(self,isbn,author,title,price,genre_id,publisher_id,available_number):
@@ -173,7 +197,8 @@ class Book(Base):
                         }
                     })
         
-        
+
+# Table schema of Magazine     
 class Magazine(Base):
     __tablename__ = 'magazines'
     issn_number = Column(String(15), nullable=False,
@@ -192,6 +217,10 @@ class Magazine(Base):
         return session.query(Magazine).all()
     
     def get_from_id(self, issn):
+        """
+        Get a database instance of magazine object with given issn number
+        Return magazine object or None
+        """
         return session.query(Magazine).where(Magazine.issn_number == str(issn)).one_or_none()
     
     def add(self,issn,editor,title,price,genre_id,publisher_id,available_number):
@@ -221,6 +250,7 @@ class Magazine(Base):
                     })
     
 
+# Table schema of Genre
 class Genre(Base):
     __tablename__ = 'genre'
     id = Column(Integer(), primary_key=True)
@@ -235,6 +265,10 @@ class Genre(Base):
     
     
     def get_from_id(self, id):
+        """
+        Get a database instance of genre object with given id
+        Return genre object or None
+        """
         return session.query(Genre).where(Genre.id == id).one_or_none()
     
     def add(self,name):
@@ -253,6 +287,8 @@ class Genre(Base):
                         }
                     })
     
+    
+# Table schema of Librarian
 class Librarian(Base):
     __tablename__ = 'librarians'
     id = Column(Integer(), primary_key=True)
@@ -262,7 +298,26 @@ class Librarian(Base):
     address = Column(String(200), nullable=False)
     phone_number = Column(BigInteger())
     
+    
     def get_all(self):
+        """
+        Get all Librarian Info and only show id name and email
+        return a list of librarian info in a dictionary format
+        
+        return format:
+        [
+            {
+              "id": 1,
+              "name": "Kausha Gautam",
+              "email": "admin1@lms.com"
+            },
+            {
+              "id": 2,
+              "name": "Sakar Poudel",
+              "email": "admin@lms.com"
+            }
+        ]
+        """
         result = session.query(
             Librarian.id, 
             Librarian.name, 
@@ -270,11 +325,19 @@ class Librarian(Base):
         ).all()
         return [dict(id=row[0], name=row[1], email=row[2]) for row in result]
     
+    
     def validate_librarian(self, email:str,password:str):
+        """
+        Simply Validate if a librarian with given email and password exsist
+        Return Librarian object or None
+        """
         return session.query(Librarian).where(Librarian.email==email, Librarian.password == password).one_or_none()
     
     
     def user_add_book(self,username, isbn_number, days=15):
+        """
+        Add book with given isbn number to a user with given username
+        """
         book_to_add = session.query(Book).where(
             Book.isbn_number == isbn_number).one_or_none()
         if not book_to_add:
@@ -305,8 +368,6 @@ class Librarian(Base):
             session.add(book_record)
             try_session_commit(session)
         elif book_to_add.available_number == 0:
-            # return CustomDatabaseException(
-            #     "This book is curently out of stock, please check again after some days.")
             raise HTTPException(status_code=409,
                 detail= {
                     "error":{
@@ -326,58 +387,69 @@ class Librarian(Base):
     
     
     def user_return_book(self,username, isbn_number):
+        """
+        Return book with given isbn number from a user with given username
+        """
+        book_to_return = session.query(Book).where(
+            Book.isbn_number == isbn_number).one_or_none()
+        # Invalid ISBN ERROR
+        if not book_to_return:
+            raise HTTPException(status_code=404,
+            detail= {
+                "error":{
+                    "error_type": "Request Not Found",
+                    "error_message": f"No Book with the ISBN number {isbn_number}"
+                    }
+                })
+        user_object = User.get_from_username(User,username)
+        
+        # Get Unreturned books
+        got_record = session.query(Record).where(
+            Record.member_id == user_object.id,
+            Record.book_id == isbn_number,
+            Record.returned == False
+        ).one_or_none()
+        fine = 0
+        
+        if got_record:
+            books_record = got_record
 
-            book_to_return = session.query(Book).where(
-                Book.isbn_number == isbn_number).one_or_none()
-            if not book_to_return:
+            # Check if the expected return date is 3 days before, if yes no fine is calculated
+            if books_record.expected_return_date.date() < datetime.utcnow().date():
+                extra_days = (datetime.utcnow().date() -
+                              books_record.expected_return_date.date()).days
                 
-                raise HTTPException(status_code=404,
-                detail= {
-                    "error":{
-                        "error_type": "Request Not Found",
-                        "error_message": f"No Book with the ISBN number {isbn_number}"
-                        }
-                    })
-            user_object = User.get_from_username(User,username)
-            got_record = session.query(Record).where(
-                Record.member_id == user_object.id,
-                Record.book_id == isbn_number,
-                Record.returned == False
-            ).one_or_none()
-            fine = 0
-            if got_record:
-                books_record = session.query(Record).filter(
-                    Record.member_id == user_object.id,
-                    Record.book_id == isbn_number,
-                    Record.returned == False
-                ).one()
-                if books_record.expected_return_date.date() < datetime.utcnow().date():
+                # For each days after 3 days, fine is calculated as Rs 3 per day 
+                if extra_days > 3:
+                    fine = extra_days * 3
 
-                    extra_days = (datetime.utcnow().date() -
-                                  books_record.expected_return_date.date()).days
-                    if extra_days > 3:
-                        fine = extra_days * 3
-                book_to_return.available_number += 1
-                books_record.returned = True
-                books_record.returned_date = datetime.utcnow().date()
-                session.query(MemberBook).filter(
-                    MemberBook.book_id == isbn_number,
-                    MemberBook.user_id == user_object.id
-                ).delete()
-                try_session_commit(session)
-                return fine
-
-            else:
-                raise HTTPException(status_code=404,
-                detail= {
-                    "error":{
-                        "error_type": "Request Not Found",
-                        "error_message": f"User {username} haven't borrowed {book_to_return.title}"
-                        }
-                    })
-                
+            #sucessfull return, increased the available number
+            # Also marked the book returned in Record
+            book_to_return.available_number += 1
+            books_record.returned = True
+            books_record.returned_date = datetime.utcnow().date()
+            
+            # Delete the record from association table.
+            session.query(MemberBook).filter(
+                MemberBook.book_id == isbn_number,
+                MemberBook.user_id == user_object.id
+            ).delete()
+            try_session_commit(session)
+            return fine
+        else:
+            raise HTTPException(status_code=404,
+            detail= {
+                "error":{
+                    "error_type": "Request Not Found",
+                    "error_message": f"User {username} haven't borrowed {book_to_return.title}"
+                    }
+                })
+            
                 
     def user_return_magazine(self, username, issn_number):
+        """
+        Return magazine with given issn number from a user with given username
+        """
         
         magazine_to_return = session.query(Magazine).where(
             Magazine.issn_number == issn_number).one_or_none()
@@ -391,7 +463,10 @@ class Librarian(Base):
                         }
                     })
             
+        # Check if username exsist
         user_object = User.get_from_username(User, username)
+
+        # Check if record exsist
         got_record = session.query(Record).where(
             Record.member_id == user_object.id,
             Record.magazine_id == issn_number,
@@ -399,23 +474,26 @@ class Librarian(Base):
         ).one_or_none()
         fine=0
         if got_record:
-            magazine_record = session.query(Record).filter(
-                Record.member_id == user_object.id,
-                Record.magazine_id == issn_number,
-                Record.returned == False
-            ).one()
+            magazine_record = got_record
+            
+            # Check if the expected returned date is expired
             if magazine_record.expected_return_date.date() < datetime.utcnow().date():
 
                 extra_days = (magazine_record.expected_return_date.date(
                 ) - datetime.utcnow().date()).days
+
+                # if magazine is't returned after 3 days of expected date
+                # Calculate fine as Rs3 per day 
                 if extra_days > 3:
                     fine = extra_days * 3
                     
-
+            # Magazine Sucessfully returned
+            # Increase available number and marked returned
             magazine_to_return.available_number += 1
             magazine_record.returned = True
             magazine_record.returned_date = datetime.utcnow().date()
 
+            # Delete the record from association table 
             session.query(MemberMagazine).filter(
                 MemberMagazine.magazine_id == issn_number,
                 MemberMagazine.user_id == user_object.id
@@ -433,7 +511,9 @@ class Librarian(Base):
                    
                  
     def user_add_magazine(self,username, issn_number, days=15):
-        
+        """
+        Add magazine with given issn number to a user with given username
+        """
         magazine_to_add = session.query(Magazine).where(
             Magazine.issn_number == issn_number).one_or_none()
         if not magazine_to_add:
@@ -444,8 +524,11 @@ class Librarian(Base):
                         "error_message": f"No Magazine with the ISSN number {issn_number}"
                         }
                     })
+        # Check if user exsist and add the magazine to that user
         user_object = User.get_from_username(User, username)
         user_object.magazine_id += [magazine_to_add]
+        
+        # Check record if the magazine is already issued to same member
         user_already_exsist = session.query(Record).where(
             Record.magazine_id == magazine_to_add.issn_number,
             Record.member_id == user_object.id,
@@ -482,6 +565,7 @@ class Librarian(Base):
                     })
             
 
+# Table schema for Record
 class Record(Base):
     __tablename__ = 'records'
     id = Column(Integer(), primary_key=True)
