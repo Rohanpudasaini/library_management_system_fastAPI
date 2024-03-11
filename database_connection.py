@@ -1,18 +1,15 @@
-import os
+
 from fastapi import HTTPException
 from sqlalchemy import create_engine, URL
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import  IntegrityError
-from dotenv import load_dotenv
-
-
-load_dotenv()
+from decouple import config
 
 #Load info from .env
-host = os.getenv('host')
-database = os.getenv('database')
-user = os.getenv('user')
-password = os.getenv('password')
+host = config('host')
+database = config('database')
+user = config('user')
+password = config('password')
 
 # Create a connection url using SQL Alchemy's URL class
 url = URL.create(
