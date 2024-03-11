@@ -234,7 +234,6 @@ async def add_genre(genreItem: GenreItem):
     }
 
 
-
 @app.get('/book', tags=['Book'])
 async def list_books():
     return {
@@ -306,7 +305,6 @@ async def get_book(isbn: str):
                 'error_type': 'Request Not Found',
                 'error_message': f'The Book with ISBN number {isbn} not found'
                 }})
-
 
 
 @app.get('/magazine', tags=['Magazine'])
@@ -382,7 +380,6 @@ async def get_magazine(issn: str):
                 }})
 
 
-
 @app.get('/user',dependencies=[Depends(JwtBearer())], tags=['User'])
 async def list_users():
     return {
@@ -453,8 +450,6 @@ async def user_borrow_book(returnObject:ReturnBookObject):
     return "Book Returned Sucessfully"
 
 
-
-
 @app.get('/user/{username}',dependencies=[Depends(JwtBearer())], tags=['User'])
 async def get_user(username: str):
     userFound = user.get_from_username(username)
@@ -485,11 +480,13 @@ async def add_user(userItem: UserItem):
         userItem.phone_number
     )
 
+
 @app.get('/librarian', tags=['Librarian'])
 async def list_librarians():
     return {
         'Users': librarian.get_all()
     }
+
 
 @app.post('/librarian/login', tags=['Librarian'])
 async def librarian_login(login_schema:LibrarianLogin):
@@ -509,6 +506,7 @@ async def librarian_login(login_schema:LibrarianLogin):
             }
         }
     )
+ 
     
 @app.get('/librarian/login/refresh', tags=['Librarian'])
 async def get_new_accessToken(refreshToken:str):
@@ -528,15 +526,3 @@ async def get_new_accessToken(refreshToken:str):
             }
         }
     )
-
-
-
-
-# @app.get('/book')
-# async def book_route(isbn: Annotated[str | None, Query(min_length=13,max_length=13)] = None):
-#     if isbn:
-#         return {
-#             'book':book.get_from_id(isbn)}
-#     return {
-#         'Books': book.get_all_book()
-#     }
