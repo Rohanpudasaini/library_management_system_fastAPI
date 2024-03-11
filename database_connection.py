@@ -1,22 +1,20 @@
 import os
 from fastapi import HTTPException
-from sqlalchemy import text, create_engine, URL, inspect
+from sqlalchemy import create_engine, URL
 from sqlalchemy.orm import Session
-from sqlalchemy.exc import NoResultFound, IntegrityError
-import time
+from sqlalchemy.exc import  IntegrityError
 from dotenv import load_dotenv
-# from databse_connection.create_table_schema import create_database, Librarian, Magazine, \
-    # MemberBooks, User, Books, Publisher, Record, MemberMagazine, try_session_commit, Genre
-# from cli_components import error_assci
+
 
 load_dotenv()
 
+#Load info from .env
 host = os.getenv('host')
 database = os.getenv('database')
 user = os.getenv('user')
 password = os.getenv('password')
 
-
+# Create a connection url using SQL Alchemy's URL class
 url = URL.create(
     database=database,
     username=user,
@@ -24,9 +22,16 @@ url = URL.create(
     host=host,
     drivername="postgresql"
 )
+
+# create a engine with above created url
 engine = create_engine(url, echo=False)
+
+# Create a session
+# TODO: make the session with context manager
 session = Session(bind=engine)
 
+#  Get session and try to commit
+# If error occurs, rollback and show generic HTTPException 
 def try_session_commit(session):
     try:
         session.commit()
@@ -40,8 +45,3 @@ def try_session_commit(session):
                         "error_message": "Please check your request"
                         }
                     })
-
-class CustomDatabaseException(Exception):
-
-    def __init__(self, message: str) -> None:
-        super().__init__(message)
