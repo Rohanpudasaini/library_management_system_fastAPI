@@ -2,7 +2,7 @@ from fastapi import Request, HTTPException
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from .jwt_handler import decodJWT
 class JwtBearer(HTTPBearer):
-    def __init__(self, auto_error: bool = True):
+    def __init__(self, auto_error: bool = False):
         super(JwtBearer, self).__init__(auto_error=auto_error) 
 
     async def __call__(self, request: Request) -> HTTPAuthorizationCredentials | None:
@@ -16,13 +16,13 @@ class JwtBearer(HTTPBearer):
             if not self.verify_jwt(credentials.credentials):
                 raise HTTPException(
                     status_code=403,
-                    detail="Invalid or expired token"
+                    detail="Couldn't Verify Token, Invalid or expired token"
                 )
             return credentials.credentials
         else:
             raise HTTPException(
                 status_code= 403,
-                detail= "Invalid Token!"
+                detail= "No token available!"
             )
     
     def verify_jwt(self, jwtoken:str):
