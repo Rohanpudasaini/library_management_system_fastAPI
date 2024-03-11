@@ -1,7 +1,7 @@
 from typing import Annotated
 from fastapi import FastAPI, HTTPException, Depends
 from models import Book, Magazine, User, Publisher, Genre, Librarian
-from pydantic import BaseModel, EmailStr, Field, StrictInt, StrictStr
+from pydantic import BaseModel, EmailStr, Field, StrictStr
 from auth.jwt_handler import  decodRefreshJWT, encodeAccessJWT, generateToken
 from auth.jwt_bearer import JwtBearer
 app = FastAPI()
