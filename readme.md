@@ -1,3 +1,11 @@
+<p align="center">
+  <a ><img src="images/lms_logo.png" alt="Library Management System" height=120></a>
+</p>
+<p align="center">
+    <em>Simple Library management system to learn FastAPI</em>
+</p>
+
+
 # Library Management System Using FASTAPI
 
 This is a simple library management system's api created using FastAPI for the endpoint, SQLAlchemy for ORM and PostgreSQL for the backend database.
@@ -67,3 +75,9 @@ This is a simple library management system's api created using FastAPI for the e
      }
    }
    ```
+
+## TODO
+
+- [ ] Add option to update or remove members and books or magazines.
+- [ ]  Testing
+- [ ] User login (Maybe)
