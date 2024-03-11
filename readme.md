@@ -1,5 +1,5 @@
 <p align="center">
-  <a ><img src="images/lms_logo.png" alt="Library Management System" height=120></a>
+  <a ><img src="images/lms_logo.png" alt="Library Management System" height=200></a>
 </p>
 <p align="center">
     <em>Simple Library management system to learn FastAPI</em>
