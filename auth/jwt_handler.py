@@ -2,12 +2,14 @@ import time
 import jwt
 from decouple import config
 
+# Load information from .env file
 JWT_SECRET = config('secret')
 JWT_ALGORITHM = config('algorithm')
 JWT_SECRET_REFRESH = config('secret_refresh')
 
 
-    
+
+# Create access token with userid, i.e email in this case
 def encodeAccessJWT(userID: str):
     payload ={
         'userID': userID,
@@ -17,7 +19,7 @@ def encodeAccessJWT(userID: str):
     return jwt.encode(payload, JWT_SECRET,JWT_ALGORITHM)
     
     
-
+# Create refresh token with userid, i.e email in this case
 def encodeRefreshJWT(userID: str):
     payload ={
         'userID': userID,
@@ -27,7 +29,7 @@ def encodeRefreshJWT(userID: str):
     return jwt.encode(payload, JWT_SECRET_REFRESH,JWT_ALGORITHM)
 
     
-
+# Generate tokens, both access and refresh
 def generateToken(userID:str):
     return{
         'access_token': encodeAccessJWT(userID),
@@ -35,7 +37,8 @@ def generateToken(userID:str):
     } 
 
 
-def decodJWT(token:str):
+# Check if the Access JWT is valid
+def decodAccessJWT(token:str):
     try:
         decode_token = jwt.decode(token,JWT_SECRET,JWT_ALGORITHM)
         return decode_token if decode_token['expiry'] >= time.time() else None
@@ -43,6 +46,8 @@ def decodJWT(token:str):
         print("Error")
         return {}
     
+    
+# Check if the Refresh JWT is valid
 def decodRefreshJWT(token:str):
     try:
         decode_token = jwt.decode(token,JWT_SECRET_REFRESH,JWT_ALGORITHM)
