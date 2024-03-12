@@ -2,7 +2,7 @@ from typing import Annotated
 from fastapi import FastAPI, HTTPException, Depends, status
 from models import Book, Magazine, User, Publisher, Genre, Librarian
 from pydantic import BaseModel, EmailStr, Field, StrictStr
-from auth.jwt_handler import  decodRefreshJWT, encodeAccessJWT, generateToken
+from auth.jwt_handler import decodRefreshJWT, encodeAccessJWT, generateToken
 from auth.jwt_bearer import JwtBearer
 app = FastAPI()
 
@@ -41,7 +41,7 @@ class BookItem(BaseModel):
 
 
 class BorrowBookObject(BaseModel):
-    username:str
+    username: str
     isbn: Annotated[StrictStr, Field(
         min_length=13,
         max_length=13,
@@ -51,15 +51,16 @@ class BorrowBookObject(BaseModel):
 
 
 class ReturnBookObject(BaseModel):
-    username:str
+    username: str
     isbn: Annotated[StrictStr, Field(
         min_length=13,
         max_length=13,
         description="The ISBN number must be of 13 digit",
     )]
-    
+
+
 class BorrowMagazineObject(BaseModel):
-    username:str
+    username: str
     issn: Annotated[StrictStr, Field(
         min_length=8,
         max_length=8,
@@ -69,13 +70,13 @@ class BorrowMagazineObject(BaseModel):
 
 
 class ReturnMagazineObject(BaseModel):
-    username:str
+    username: str
     issn: Annotated[StrictStr, Field(
         min_length=8,
         max_length=8,
         description="The ISSN number must be of 8 digit",
     )]
-    
+
 
 class MagazineItem(BaseModel):
     editor: str
@@ -108,13 +109,14 @@ class MagazineItem(BaseModel):
 
 class PublisherItem(BaseModel):
     name: str
-    phone_number: Annotated[str, Field(max_length=10, min_length=10)]
-    address: str
+    phone_number: Annotated[str | None, Field(
+        max_length=10, min_length=10)] = None
+    address: str | None = None
 
 
 class LibrarianLogin(BaseModel):
-    email:EmailStr = Field(default=None)
-    password:str = Field(default=None)
+    email: EmailStr = Field(default=None)
+    password: str = Field(default=None)
 
 
 class GenreItem(BaseModel):
@@ -180,7 +182,12 @@ async def get_publisher(publisherId: int):
     )
 
 
-@app.post('/publisher/add',dependencies=[Depends(JwtBearer())], tags=['Publisher'])
+@app.post(
+    '/publisher/add',
+    dependencies=[Depends(JwtBearer())],
+    tags=['Publisher'],
+    status_code=201
+)
 async def add_publisher(publisherItem: PublisherItem):
     return {
         'result': publisher.add(
@@ -225,7 +232,7 @@ async def get_genre(genreId: int):
     )
 
 
-@app.post('/genre/add',dependencies=[Depends(JwtBearer())], tags=['Genre'])
+@app.post('/genre/add', status_code=201, dependencies=[Depends(JwtBearer())], tags=['Genre'])
 async def add_genre(genreItem: GenreItem):
     return {
         'result': genre.add(
@@ -241,7 +248,7 @@ async def list_books():
     }
 
 
-@app.post('/book/add',dependencies=[Depends(JwtBearer())], tags=['Book'])
+@app.post('/book/add', status_code=201, dependencies=[Depends(JwtBearer())], tags=['Book'])
 async def add_book(book_item: BookItem):
     if await get_genre(book_item.genre_id):
         if await get_publisher(book_item.publisher_id):
@@ -314,7 +321,7 @@ async def list_magazines():
     }
 
 
-@app.post('/magazine/add',dependencies=[Depends(JwtBearer())], tags=['Magazine'])
+@app.post('/magazine/add', status_code=201, dependencies=[Depends(JwtBearer())], tags=['Magazine'])
 async def add_magazine(magazine_item: MagazineItem):
     if await get_genre(magazine_item.genre_id):
         if await get_publisher(magazine_item.publisher_id):
@@ -380,14 +387,14 @@ async def get_magazine(issn: str):
                 }})
 
 
-@app.get('/user',dependencies=[Depends(JwtBearer())], tags=['User'])
+@app.get('/user', dependencies=[Depends(JwtBearer())], tags=['User'])
 async def list_users():
     return {
         'Users': user.get_all()
     }
 
 
-@app.get('/user/add',dependencies=[Depends(JwtBearer())], tags=['User'])
+@app.get('/user/add', dependencies=[Depends(JwtBearer())], tags=['User'])
 async def add_user():
     return {
         'expected_format': {
@@ -399,34 +406,35 @@ async def add_user():
     }
 
 
-@app.get('/user/borrowed',dependencies=[Depends(JwtBearer())], tags=['User'])
-async def borrowed_items(username:str):
+@app.get('/user/borrowed', dependencies=[Depends(JwtBearer())], tags=['User'])
+async def borrowed_items(username: str):
     return {
         "Username": username,
         'Borrowed': user.get_all_borrowed(username)
-        
+
     }
 
 
-@app.post('/user/borrow_book',dependencies=[Depends(JwtBearer())], tags=['User'])
-async def user_borrow_book(borrowObject:BorrowBookObject):
-    librarian.user_add_book(borrowObject.username,borrowObject.isbn)
+@app.post('/user/borrow_book', dependencies=[Depends(JwtBearer())], tags=['User'])
+async def user_borrow_book(borrowObject: BorrowBookObject):
+    librarian.user_add_book(borrowObject.username, borrowObject.isbn)
     return {
         "Sucess": "Book Borrowed Sucessfully"
     }
 
 
-@app.post('/user/borrow_magazine',dependencies=[Depends(JwtBearer())], tags=['User'])
-async def user_borrow_magazine(borrowObject:BorrowMagazineObject):
-    librarian.user_add_magazine(borrowObject.username,borrowObject.issn)
+@app.post('/user/borrow_magazine', dependencies=[Depends(JwtBearer())], tags=['User'])
+async def user_borrow_magazine(borrowObject: BorrowMagazineObject):
+    librarian.user_add_magazine(borrowObject.username, borrowObject.issn)
     return {
         "Sucess": "Magazine Borrowed Sucessfully"
     }
 
 
-@app.post('/user/return_magazine',dependencies=[Depends(JwtBearer())], tags=['User'])
-async def user_borrow_magazine(returnObject:ReturnMagazineObject):
-    fine = librarian.user_return_magazine(returnObject.username,returnObject.issn)
+@app.post('/user/return_magazine', dependencies=[Depends(JwtBearer())], tags=['User'])
+async def user_borrow_magazine(returnObject: ReturnMagazineObject):
+    fine = librarian.user_return_magazine(
+        returnObject.username, returnObject.issn)
     if fine:
         return {
             "Fine Remaning": {
@@ -437,9 +445,9 @@ async def user_borrow_magazine(returnObject:ReturnMagazineObject):
     return "Magazine Returned Sucessfully"
 
 
-@app.post('/user/return_book',dependencies=[Depends(JwtBearer())], tags=['User'])
-async def user_borrow_book(returnObject:ReturnBookObject):
-    fine = librarian.user_return_book(returnObject.username,returnObject.isbn)
+@app.post('/user/return_book', dependencies=[Depends(JwtBearer())], tags=['User'])
+async def user_borrow_book(returnObject: ReturnBookObject):
+    fine = librarian.user_return_book(returnObject.username, returnObject.isbn)
     if fine:
         return {
             "Fine Remaning": {
@@ -450,15 +458,15 @@ async def user_borrow_book(returnObject:ReturnBookObject):
     return "Book Returned Sucessfully"
 
 
-@app.get('/user/{username}',dependencies=[Depends(JwtBearer())], tags=['User'])
+@app.get('/user/{username}', dependencies=[Depends(JwtBearer())], tags=['User'])
 async def get_user(username: str):
     userFound = user.get_from_username(username)
-    if userFound:    
+    if userFound:
         return {
             'User': {
-                "user_details" : userFound,
-                
-                }
+                "user_details": userFound,
+
+            }
         }
     raise HTTPException(
         status_code=404,
@@ -471,7 +479,7 @@ async def get_user(username: str):
     )
 
 
-@app.post('/user/add',dependencies=[Depends(JwtBearer())] ,tags=['User'])
+@app.post('/user/add', status_code=201, dependencies=[Depends(JwtBearer())], tags=['User'])
 async def add_user(userItem: UserItem):
     return user.add(
         userItem.username,
@@ -489,33 +497,34 @@ async def list_librarians():
 
 
 @app.post('/librarian/login', tags=['Librarian'])
-async def librarian_login(login_schema:LibrarianLogin):
-    valid = librarian.validate_librarian(login_schema.email, login_schema.password)
+async def librarian_login(login_schema: LibrarianLogin):
+    valid = librarian.validate_librarian(
+        login_schema.email, login_schema.password)
     if valid:
         # token = encodeAccessJWT(login_schema.password)
         token = generateToken(login_schema.email)
-        token.update({'email':login_schema.email})
+        token.update({'email': login_schema.email})
         return token
     else:
         raise HTTPException(
-        status_code=401,
-        detail={
-            'Error': {
-                'error_type': 'Request Not Found',
-                'error_message': 'Incorrect email or password'
+            status_code=401,
+            detail={
+                'Error': {
+                    'error_type': 'Request Not Found',
+                    'error_message': 'Incorrect email or password'
+                }
             }
-        }
-    )
- 
-    
+        )
+
+
 @app.get('/librarian/login/refresh', tags=['Librarian'])
-async def get_new_accessToken(refreshToken:str):
+async def get_new_accessToken(refreshToken: str):
     token = decodRefreshJWT(refreshToken)
     # return token
     if token:
-        return{
-        'access_token': encodeAccessJWT(token["userID"]),
-        'userID': token["userID"]    
+        return {
+            'access_token': encodeAccessJWT(token["userID"]),
+            'userID': token["userID"]
         }
     raise HTTPException(
         status_code=403,
