@@ -39,7 +39,7 @@ class JwtBearer(HTTPBearer):
                 )
             if not self.verify_jwt(credentials.credentials):
                 raise HTTPException(
-                    status_code=403,
+                    status_code=400,
                     detail="Couldn't Verify Token, Invalid or expired token"
                 )
             return credentials.credentials

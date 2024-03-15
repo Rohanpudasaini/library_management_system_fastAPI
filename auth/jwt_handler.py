@@ -1,5 +1,7 @@
 import time
-import jwt
+# import jwt
+from fastapi import HTTPException
+from jose import JWTError, jwt
 from decouple import config
 
 # Load information from .env file
@@ -42,9 +44,11 @@ def decodAccessJWT(token:str):
     try:
         decode_token = jwt.decode(token,JWT_SECRET,JWT_ALGORITHM)
         return decode_token if decode_token['expiry'] >= time.time() else None
-    except jwt.InvalidTokenError:
-        print("Error")
-        return {}
+    except JWTError:
+        raise HTTPException(
+                    status_code=400,
+                    detail="Couldn't Verify Token, Invalid or expired token"
+                )
     
     
 # Check if the Refresh JWT is valid
@@ -53,5 +57,4 @@ def decodRefreshJWT(token:str):
         decode_token = jwt.decode(token,JWT_SECRET_REFRESH,JWT_ALGORITHM)
         return decode_token if decode_token['expiry'] >= time.time() else None
     except jwt.InvalidTokenError:
-        print("Error")
         return {}
