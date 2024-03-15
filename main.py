@@ -4,7 +4,26 @@ from models import Book, Magazine, User, Publisher, Genre, Librarian
 from pydantic import BaseModel, EmailStr, Field, StrictStr
 from auth.jwt_handler import decodRefreshJWT, encodeAccessJWT, generateToken
 from auth.jwt_bearer import JwtBearer
-app = FastAPI()
+
+
+description = """
+Library Management API helps you do awesome stuff. 🚀
+
+Please go to  `/` to know about ervery availabe route.
+"""
+
+
+app = FastAPI(
+    title="LibraryManagementSystem",
+    description=description,
+    summary="All your library related stuff.",
+    version="0.0.1",
+    contact={
+        "name": "Rohan Pudasaini",
+        "url": "https://rohanpudasaini.com.np",
+        "email": "admin@rohanpudasaini.com.np",
+    },
+)
 
 book = Book()
 magazine = Magazine()
