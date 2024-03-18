@@ -1,5 +1,6 @@
 from typing import Annotated
-from fastapi import FastAPI, HTTPException, Depends, status
+from fastapi import FastAPI, HTTPException, Depends
+import error_constant
 from models import Book, Magazine, User, Publisher, Genre, Librarian
 from pydantic import BaseModel, EmailStr, Field, StrictStr
 from auth.jwt_handler import decodRefreshJWT, encodeAccessJWT, generateToken
@@ -172,17 +173,6 @@ async def list_publishers():
     }
 
 
-@app.get('/publisher/add', tags=['Publisher'])
-async def add_publisher_menu():
-    return {
-        'expected_format': {
-            "name": "string",
-            "phone_number": "1234567890",
-            "address": "string"
-        }
-    }
-
-
 @app.get('/publisher/{publisherId}', tags=['Publisher'])
 async def get_publisher(publisherId: int):
     publisherFound = publisher.get_from_id(publisherId)
@@ -194,9 +184,9 @@ async def get_publisher(publisherId: int):
         status_code=404,
         detail={
             'Error': {
-                'error_type': 'Request Not Found',
-                'error_message': f'No publisher with id {publisherId}'
-            }
+                'error_type': error_constant.REQUEST_NOT_FOUND,
+                'error_message': error_constant.PUBLISHER_REQUEST_NOT_FOUND_MESSAGE,
+                }
         }
     )
 
@@ -224,15 +214,6 @@ async def list_genre():
     }
 
 
-@app.get('/genre/add', tags=['Genre'])
-async def add_genre_menu():
-    return {
-        'expected_format': {
-            "name": "Genre_name"
-        }
-    }
-
-
 @app.get('/genre/{genreId}', tags=['Genre'])
 async def get_genre(genreId: int):
     publisherFound = genre.get_from_id(genreId)
@@ -244,8 +225,8 @@ async def get_genre(genreId: int):
         status_code=404,
         detail={
             'Error': {
-                'error_type': 'Request Not Found',
-                'error_message': f'No genre with id {genreId}'
+                'error_type': error_constant.REQUEST_NOT_FOUND,
+                'error_message': error_constant.GENRE_REQUEST_NOT_FOUND_MESSAGE,
             }
         }
     )
@@ -294,30 +275,15 @@ async def add_book(book_item: BookItem):
         raise HTTPException(
             status_code=404,
             detail={'error': {
-                'error_type': 'Request Not Found',
-                'error_message': f'The Publisher with Publisher Id {book_item.publisher_id} not found'
+                'error_type': error_constant.REQUEST_NOT_FOUND,
+                'error_message': error_constant.PUBLISHER_REQUEST_NOT_FOUND_MESSAGE,
             }})
     raise HTTPException(
         status_code=404,
         detail={'error': {
-                'error_type': 'Request Not Found',
-                'error_message': f'The Genre with Genre Id {book_item.genre_id} not found'
+                'error_type': error_constant.REQUEST_NOT_FOUND,
+                'error_message': error_constant.GENRE_REQUEST_NOT_FOUND_MESSAGE,
                 }})
-
-
-@app.get('/book/add', tags=['Book'])
-async def add_book_menu():
-    return {
-        'expected_format': {
-            "title": "string",
-            "author": "string",
-            "isbn": "stringstrings",
-            "price": 1,
-            "genre_id": 1,
-            "publisher_id": 1,
-            "available_number": 1
-        }
-    }
 
 
 @app.get('/book/{isbn}', tags=['Book'])
@@ -382,21 +348,6 @@ async def add_magazine(magazine_item: MagazineItem):
                 }})
 
 
-@app.get('/magazine/add', tags=['Magazine'])
-async def add_magazine_menu():
-    return {
-        'expected_format': {
-            "editor": "string",
-            "title": "string",
-            "issn": "stringst",
-            "genre_id": 1,
-            "publisher_id": 1,
-            "available_number": 1,
-            "price": 1
-        }
-    }
-
-
 @app.get('/magazine/{issn}', tags=['Magazine'])
 async def get_magazine(issn: str):
     if len(issn) != 8:
@@ -415,8 +366,8 @@ async def get_magazine(issn: str):
     raise HTTPException(
         status_code=404,
         detail={'error': {
-                'error_type': 'Request Not Found',
-                'error_message': f'The Magazine with ISSN number {issn} not found'
+                'error_type':    error_constant.REQUEST_NOT_FOUND,
+                'error_message': error_constant.MAGAZINE_REQUEST_NOT_FOUND_MESSAGE
                 }})
 
 
@@ -424,18 +375,6 @@ async def get_magazine(issn: str):
 async def list_users():
     return {
         'Users': user.get_all()
-    }
-
-
-@app.get('/user/add', dependencies=[Depends(JwtBearer())], tags=['User'])
-async def add_user():
-    return {
-        'expected_format': {
-            "username": "Sweta",
-            "email": "sweta@email.com",
-            "address": "Kathmandu",
-            "phone_number": "1234567894"
-        }
     }
 
 

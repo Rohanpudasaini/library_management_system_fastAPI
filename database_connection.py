@@ -3,6 +3,7 @@ from sqlalchemy import create_engine, URL
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import  IntegrityError
 from decouple import config
+import error_constant 
 
 #Load info from .env
 host = config('host')
@@ -20,7 +21,7 @@ url = URL.create(
 )
 
 # create a engine with above created url
-engine = create_engine(url, echo=True)
+engine = create_engine(url, echo=False)
 
 # Create a session
 # TODO: make the session with context manager
@@ -37,7 +38,7 @@ def try_session_commit(session):
         raise HTTPException(status_code=500,
                 detail= {
                     "error":{
-                        "error_type": "Internal Error",
-                        "error_message": "Please check your request"
+                        "error_type": error_constant.INTERNAL_ERROR,
+                        "error_message": error_constant.INTERNAL_ERROR_MESSAGE
                         }
                     })

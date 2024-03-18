@@ -1,6 +1,6 @@
 from sqlalchemy.orm import DeclarativeBase, relationship
 from sqlalchemy import Column, Select, String, DateTime, BigInteger, Integer, ForeignKey, Boolean
-from sqlalchemy.exc import IntegrityError
+from sqlalchemy.exc import IntegrityError, DataError
 from datetime import datetime, timedelta
 from database_connection import session, try_session_commit
 from fastapi import HTTPException
@@ -103,6 +103,17 @@ class User(Base):
                         "error_message": f"User with username {username} already exsist."
                         }
                     })
+        except DataError:
+            session.rollback()
+            # If phone number can't be converted to int.
+            raise HTTPException(status_code=400,
+                detail= {
+                    "error":{
+                        "error_type": "Bad Request",
+                        "error_message": "Error while trying to convert to int, please check your input."
+                        }
+                    })
+            
     
 
 # Table schema of publisher   
