@@ -20,7 +20,7 @@ url = URL.create(
 )
 
 # create a engine with above created url
-engine = create_engine(url, echo=False)
+engine = create_engine(url, echo=True)
 
 # Create a session
 # TODO: make the session with context manager

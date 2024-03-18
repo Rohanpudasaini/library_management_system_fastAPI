@@ -1,5 +1,5 @@
 from sqlalchemy.orm import DeclarativeBase, relationship
-from sqlalchemy import Column, String, DateTime, BigInteger, Integer, ForeignKey, Boolean
+from sqlalchemy import Column, Select, String, DateTime, BigInteger, Integer, ForeignKey, Boolean
 from sqlalchemy.exc import IntegrityError
 from datetime import datetime, timedelta
 from database_connection import session, try_session_commit
@@ -160,9 +160,41 @@ class Book(Base):
     record = relationship('Record', backref='book')
     
     
-    def get_all(self):
-        books = session.query(Book).all()
-        return books
+    # def get_all(self, numbers, all):
+    #     if all:
+    #         statement = Select(Book)
+    #         books = session.execute(statement).all()
+    #         return [book[0] for book in books]
+    #     if numbers:
+    #         statement = Select(Book).limit(numbers)
+    #         books = session.execute(statement)
+    #         return [book[0] for book in books]
+    #     else:
+    #         statement = Select(Book).offset(2).limit(3)
+    #         books = session.execute(statement)
+    #         return [book[0] for book in books]
+
+
+    def get_all(self, all, page, limit):
+        if all:
+            statement = Select(Book)
+            books = session.execute(statement).all()
+        else:
+            statement = Select(Book).offset((page-1)*limit).limit(limit)
+            books = session.execute(statement)
+        
+        books =  [book[0] for book in books]
+        if books:
+            return books
+        raise HTTPException(status_code=204,
+                detail= {
+                    "error":{
+                        "error_type": "No content",
+                        "error_message": "No content Found."
+                        }
+                    })
+
+    
     
     def get_from_id(self, isbn):
         """
@@ -213,8 +245,24 @@ class Magazine(Base):
     available_number = Column(Integer, default=0)
     record = relationship('Record', backref='magazine')
     
-    def get_all(self):
-        return session.query(Magazine).all()
+    def get_all(self,page,all,limit):
+        if all:
+            statement = Select(Magazine)
+            magazines = session.execute(statement).all()
+        else:
+            statement = Select(Magazine).offset((page-1)*limit).limit(limit)
+            magazines = session.execute(statement)
+        magazines = [magazine[0] for magazine in magazines]
+        if magazines:
+            return magazines
+        raise HTTPException(status_code=204,
+                detail= {
+                    "error":{
+                        "error_type": "No content",
+                        "error_message": "No content Found."
+                        }
+                    })
+        
     
     def get_from_id(self, issn):
         """

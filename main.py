@@ -261,10 +261,20 @@ async def add_genre(genreItem: GenreItem):
 
 
 @app.get('/book', tags=['Book'])
-async def list_books():
+async def list_books(
+    page:int|None=1, 
+    all:bool|None=None, 
+    limit:int|None=3
+    ):
     return {
-        'Books': book.get_all()
+        'Books': book.get_all(page=page,limit=limit,all=all)
     }
+    
+# @app.get('/book', tags=['Book'])
+# async def list_books(numbers:int|None=None,all:bool|None=None):
+#     return {
+#         'Books': book.get_all(numbers,all)
+#     }
 
 
 @app.post('/book/add', status_code=201, dependencies=[Depends(JwtBearer())], tags=['Book'])
@@ -334,9 +344,13 @@ async def get_book(isbn: str):
 
 
 @app.get('/magazine', tags=['Magazine'])
-async def list_magazines():
+async def list_magazines(
+    page:int|None=1, 
+    all:bool|None=None, 
+    limit:int|None=3
+):
     return {
-        'Magazines': magazine.get_all()
+        'Magazines': magazine.get_all(page, all, limit)
     }
 
 
