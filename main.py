@@ -129,14 +129,25 @@ class MagazineItem(BaseModel):
 
 class PublisherItem(BaseModel):
     name: str
-    phone_number: Annotated[str | None, Field(
-        max_length=10, min_length=10)] = None
+    phone_number: Annotated[int | None, Field(
+        ge=1111111111, le=9999999999)] = None
     address: str | None = None
 
 
 class LibrarianLogin(BaseModel):
     email: EmailStr = Field(default=None)
     password: str = Field(default=None)
+    
+    model_config = {
+        "json_schema_extra" : {
+            'examples':[
+                {
+                  "email": "admin@lms.com",
+                  "password": "admin"
+                }
+            ]
+        },
+    }
 
 
 class GenreItem(BaseModel):
@@ -147,7 +158,7 @@ class UserItem(BaseModel):
     username: str
     email: str
     address: str
-    phone_number: Annotated[str, Field(max_length=10, min_length=10)]
+    phone_number: Annotated[int, Field(ge=1111111111, le=9999999999)]
 
 
 @app.get('/', tags=['Home'])
@@ -197,6 +208,7 @@ async def get_publisher(publisherId: int):
     tags=['Publisher'],
     status_code=201
 )
+
 async def add_publisher(publisherItem: PublisherItem):
     return {
         'result': publisher.add(
