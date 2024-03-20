@@ -4,6 +4,8 @@ from sqlalchemy.exc import IntegrityError, DataError
 from datetime import datetime, timedelta
 from database_connection import session, try_session_commit
 from fastapi import HTTPException
+import error_constant
+
 
 
 class Base(DeclarativeBase):
@@ -76,8 +78,8 @@ class User(Base):
             raise HTTPException(status_code=404,
                 detail= {
                     "error":{
-                        "error_type": "Request Not Found",
-                        "error_message": f"No User with the Username {username}"
+                        "error_type": error_constant.REQUEST_NOT_FOUND,
+                        "error_message": error_constant.request_not_found("user","username")
                         }
                     })
         return user_object
@@ -99,20 +101,11 @@ class User(Base):
             raise HTTPException(status_code=400,
                 detail= {
                     "error":{
-                        "error_type": "Bad Request",
-                        "error_message": f"User with username {username} already exsist."
+                        "error_type": error_constant.BAD_REQUEST,
+                        "error_message": error_constant.bad_request("User","username")
                         }
                     })
-        except DataError:
-            session.rollback()
-            # If phone number can't be converted to int.
-            raise HTTPException(status_code=400,
-                detail= {
-                    "error":{
-                        "error_type": "Bad Request",
-                        "error_message": "Error while trying to convert to int, please check your input."
-                        }
-                    })
+        
             
     
 
@@ -149,8 +142,8 @@ class Publisher(Base):
             raise HTTPException(status_code=400,
                 detail= {
                     "error":{
-                        "error_type": "Bad Request",
-                        "error_message": f"Publisher named {name} already exsist."
+                        "error_type": error_constant.BAD_REQUEST,
+                        "error_message": error_constant.bad_request("Publisher","publisher name")
                         }
                     })
 
@@ -200,8 +193,8 @@ class Book(Base):
         raise HTTPException(status_code=204,
                 detail= {
                     "error":{
-                        "error_type": "No content",
-                        "error_message": "No content Found."
+                        "error_type": error_constant.NO_CONTENT,
+                        "error_message": error_constant.NO_CONTENT_MESSAGE
                         }
                     })
 
@@ -235,8 +228,8 @@ class Book(Base):
             raise HTTPException(status_code=400,
                 detail= {
                     "error":{
-                        "error_type": "Bad Request",
-                        "error_message": f"Book with ISBN number {isbn} already exsist."
+                        "error_type": error_constant.BAD_REQUEST,
+                        "error_message": error_constant.bad_request("book", "ISBN number")
                         }
                     })
         
@@ -269,8 +262,8 @@ class Magazine(Base):
         raise HTTPException(status_code=204,
                 detail= {
                     "error":{
-                        "error_type": "No content",
-                        "error_message": "No content Found."
+                        "error_type":    error_constant.NO_CONTENT,
+                        "error_message": error_constant.NO_CONTENT_MESSAGE,
                         }
                     })
         
@@ -303,8 +296,8 @@ class Magazine(Base):
             raise HTTPException(status_code=400,
                 detail= {
                     "error":{
-                        "error_type": "Bad Request",
-                        "error_message": f"Magazine with ISSN number {issn} already exsist."
+                        "error_type": error_constant.BAD_REQUEST,
+                        "error_message": error_constant.bad_request("Magazine", "ISSN number")
                         }
                     })
     
@@ -341,8 +334,8 @@ class Genre(Base):
             raise HTTPException(status_code=400,
                 detail= {
                     "error":{
-                        "error_type": "Bad Request",
-                        "error_message": f"Genre with name {name} already exsist."
+                        "error_type": error_constant.BAD_REQUEST,
+                        "error_message": error_constant.bad_request("Genre", "name")
                         }
                     })
     
@@ -403,8 +396,8 @@ class Librarian(Base):
             raise HTTPException(status_code=404,
                 detail= {
                     "error":{
-                        "error_type": "Request Not Found",
-                        "error_message": f"No Book with the ISBN number {isbn_number}"
+                        "error_type": error_constant.REQUEST_NOT_FOUND,
+                        "error_message": error_constant.request_not_found("book", "ISBN number")
                         }
                     })
         
@@ -430,17 +423,21 @@ class Librarian(Base):
             raise HTTPException(status_code=409,
                 detail= {
                     "error":{
-                        "error_type": "Insufficient Resources",
-                        "error_message": "This book is curently out of stock, please check again after some days."
+                        "error_type": error_constant.INSUFFICIENT_RESOURCES,
+                        "error_message": error_constant.insufficient_resources("book")
                         }
                     })
 
         else:
             raise HTTPException(status_code=400,
                 detail= {
+                    # "error":{
+                    #     "error_type": error_constant.BAD_REQUEST,
+                    #     "error_message": "You have already issued this same book already."
+                    #     }
                     "error":{
-                        "error_type": "Bad Request",
-                        "error_message": "You have already issued this same book already."
+                        "error_type": error_constant.BAD_REQUEST,
+                        "error_message": error_constant.bad_request("book","isbn",True)
                         }
                     })
     
@@ -456,8 +453,8 @@ class Librarian(Base):
             raise HTTPException(status_code=404,
             detail= {
                 "error":{
-                    "error_type": "Request Not Found",
-                    "error_message": f"No Book with the ISBN number {isbn_number}"
+                    "error_type": error_constant.REQUEST_NOT_FOUND,
+                    "error_message": error_constant.request_not_found("book", "ISBN number")
                     }
                 })
         user_object = User.get_from_username(User,username)
@@ -498,10 +495,15 @@ class Librarian(Base):
         else:
             raise HTTPException(status_code=404,
             detail= {
+                # "error":{
+                #     "error_type": error_constant.REQUEST_NOT_FOUND,
+                #     "error_message": f"User {username} haven't borrowed {book_to_return.title}"
+                #     }
                 "error":{
-                    "error_type": "Request Not Found",
-                    "error_message": f"User {username} haven't borrowed {book_to_return.title}"
+                    "error_type": error_constant.REQUEST_NOT_FOUND,
+                    "error_message": error_constant.request_not_found("username have issued books","ISBN number")
                     }
+                
                 })
             
                 
@@ -517,8 +519,8 @@ class Librarian(Base):
             raise HTTPException(status_code=404,
                 detail= {
                     "error":{
-                        "error_type": "Request Not Found",
-                        "error_message": f"No Magazine with the ISSN number {issn_number}"
+                        "error_type": error_constant.REQUEST_NOT_FOUND,
+                        "error_message": error_constant.request_not_found("magazine",'ISSN number')
                         }
                     })
             
@@ -563,8 +565,8 @@ class Librarian(Base):
             raise HTTPException(status_code=404,
                 detail= {
                     "error":{
-                        "error_type": "Request Not Found",
-                        "error_message": f"User {username} haven't borrowed {magazine_to_return.title}"
+                        "error_type": error_constant.REQUEST_NOT_FOUND,
+                    "error_message": error_constant.request_not_found("username have issued magazine","ISSN number")
                         }
                     })
                    
@@ -579,8 +581,8 @@ class Librarian(Base):
             raise HTTPException(status_code=404,
                 detail= {
                     "error":{
-                        "error_type": "Request Not Found",
-                        "error_message": f"No Magazine with the ISSN number {issn_number}"
+                        "error_type": error_constant.REQUEST_NOT_FOUND,
+                        "error_message": error_constant.request_not_found("magazine",'ISSN number')
                         }
                     })
         # Check if user exsist and add the magazine to that user
@@ -610,16 +612,16 @@ class Librarian(Base):
             raise HTTPException(status_code=409,
                 detail= {
                     "error":{
-                        "error_type": "Insufficient Resources",
-                        "error_message": "This Magazine is curently out of stock, please check again after some days."
+                        "error_type": error_constant.INSUFFICIENT_RESOURCES,
+                        "error_message": error_constant.insufficient_resources("magazine")
                         }
                     })
         else:
             raise HTTPException(status_code=400,
                 detail= {
                     "error":{
-                        "error_type": "Bad Request",
-                        "error_message": "You have already issued this same Magazine already."
+                        "error_type": error_constant.BAD_REQUEST,
+                        "error_message": error_constant.bad_request("magazine","ISSN number", True)
                         }
                     })
             
