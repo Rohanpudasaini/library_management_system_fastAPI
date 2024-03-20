@@ -143,7 +143,8 @@ class LibrarianLogin(BaseModel):
             'examples':[
                 {
                   "email": "admin@lms.com",
-                  "password": "admin"
+                  "password": "admin",
+                  "contact":"Test1",
                 }
             ]
         },
@@ -203,7 +204,7 @@ async def get_publisher(publisherId: int):
 
 
 @app.post(
-    '/publisher/add',
+    '/publisher',
     dependencies=[Depends(JwtBearer())],
     tags=['Publisher'],
     status_code=201
@@ -244,7 +245,7 @@ async def get_genre(genreId: int):
     )
 
 
-@app.post('/genre/add', status_code=201, dependencies=[Depends(JwtBearer())], tags=['Genre'])
+@app.post('/genre', status_code=201, dependencies=[Depends(JwtBearer())], tags=['Genre'])
 async def add_genre(genreItem: GenreItem):
     return {
         'result': genre.add(
@@ -270,7 +271,7 @@ async def list_books(
 #     }
 
 
-@app.post('/book/add', status_code=201, dependencies=[Depends(JwtBearer())], tags=['Book'])
+@app.post('/book', status_code=201, dependencies=[Depends(JwtBearer())], tags=['Book'])
 async def add_book(book_item: BookItem):
     if await get_genre(book_item.genre_id):
         if await get_publisher(book_item.publisher_id):
@@ -332,7 +333,7 @@ async def list_magazines(
     }
 
 
-@app.post('/magazine/add', status_code=201, dependencies=[Depends(JwtBearer())], tags=['Magazine'])
+@app.post('/magazine', status_code=201, dependencies=[Depends(JwtBearer())], tags=['Magazine'])
 async def add_magazine(magazine_item: MagazineItem):
     if await get_genre(magazine_item.genre_id):
         if await get_publisher(magazine_item.publisher_id):
@@ -463,7 +464,7 @@ async def get_user(username: str):
     )
 
 
-@app.post('/user/add', status_code=201, dependencies=[Depends(JwtBearer())], tags=['User'])
+@app.post('/user', status_code=201, dependencies=[Depends(JwtBearer())], tags=['User'])
 async def add_user(userItem: UserItem):
     return user.add(
         userItem.username,
@@ -480,7 +481,7 @@ async def list_librarians():
     }
 
 
-@app.post('/librarian/login', tags=['Librarian'])
+@app.post('/login', tags=['Librarian'])
 async def librarian_login(login_schema: LibrarianLogin):
     valid = librarian.validate_librarian(
         login_schema.email, login_schema.password)
@@ -501,7 +502,7 @@ async def librarian_login(login_schema: LibrarianLogin):
         )
 
 
-@app.get('/librarian/login/refresh', tags=['Librarian'])
+@app.get('/refresh', tags=['Librarian'])
 async def get_new_accessToken(refreshToken: str):
     token = decodRefreshJWT(refreshToken)
     # return token

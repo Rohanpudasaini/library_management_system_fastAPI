@@ -98,11 +98,11 @@ class User(Base):
         except IntegrityError:
             session.rollback()
             # Same User Already Exsist
-            raise HTTPException(status_code=400,
+            raise HTTPException(status_code=403,
                 detail= {
                     "error":{
-                        "error_type": error_constant.BAD_REQUEST,
-                        "error_message": error_constant.bad_request("User","username")
+                        "error_type": error_constant.FORBIDDEN,
+                        "error_message": error_constant.forbidden_request("User","username")
                         }
                     })
         
@@ -139,11 +139,11 @@ class Publisher(Base):
         
         except IntegrityError:
             session.rollback()
-            raise HTTPException(status_code=400,
+            raise HTTPException(status_code=403,
                 detail= {
                     "error":{
-                        "error_type": error_constant.BAD_REQUEST,
-                        "error_message": error_constant.bad_request("Publisher","publisher name")
+                        "error_type": error_constant.FORBIDDEN,
+                        "error_message": error_constant.forbidden_request("Publisher","publisher name")
                         }
                     })
 
@@ -225,11 +225,11 @@ class Book(Base):
             # print(e)
             session.rollback()
             # return "The Same Book Already exsist"
-            raise HTTPException(status_code=400,
+            raise HTTPException(status_code=403,
                 detail= {
                     "error":{
-                        "error_type": error_constant.BAD_REQUEST,
-                        "error_message": error_constant.bad_request("book", "ISBN number")
+                        "error_type": error_constant.FORBIDDEN,
+                        "error_message": error_constant.forbidden_request("book", "ISBN number")
                         }
                     })
         
@@ -293,11 +293,11 @@ class Magazine(Base):
             # print(e)
             session.rollback()
             # return "The Same Magazine Already exsist"
-            raise HTTPException(status_code=400,
+            raise HTTPException(status_code=403,
                 detail= {
                     "error":{
-                        "error_type": error_constant.BAD_REQUEST,
-                        "error_message": error_constant.bad_request("Magazine", "ISSN number")
+                        "error_type": error_constant.FORBIDDEN,
+                        "error_message": error_constant.forbidden_request("Magazine", "ISSN number")
                         }
                     })
     
@@ -331,11 +331,11 @@ class Genre(Base):
         except IntegrityError:
             session.rollback()
             # return "Same Genre Already Exsist"
-            raise HTTPException(status_code=400,
+            raise HTTPException(status_code=403,
                 detail= {
                     "error":{
-                        "error_type": error_constant.BAD_REQUEST,
-                        "error_message": error_constant.bad_request("Genre", "name")
+                        "error_type": error_constant.FORBIDDEN,
+                        "error_message": error_constant.forbidden_request("Genre", "name")
                         }
                     })
     
@@ -429,15 +429,15 @@ class Librarian(Base):
                     })
 
         else:
-            raise HTTPException(status_code=400,
+            raise HTTPException(status_code=403,
                 detail= {
                     # "error":{
-                    #     "error_type": error_constant.BAD_REQUEST,
+                    #     "error_type": error_constant.FORBIDDEN,
                     #     "error_message": "You have already issued this same book already."
                     #     }
                     "error":{
-                        "error_type": error_constant.BAD_REQUEST,
-                        "error_message": error_constant.bad_request("book","isbn",True)
+                        "error_type": error_constant.FORBIDDEN,
+                        "error_message": error_constant.forbidden_request("book","isbn",True)
                         }
                     })
     
@@ -617,11 +617,11 @@ class Librarian(Base):
                         }
                     })
         else:
-            raise HTTPException(status_code=400,
+            raise HTTPException(status_code=403,
                 detail= {
                     "error":{
-                        "error_type": error_constant.BAD_REQUEST,
-                        "error_message": error_constant.bad_request("magazine","ISSN number", True)
+                        "error_type": error_constant.FORBIDDEN,
+                        "error_message": error_constant.forbidden_request("magazine","ISSN number", True)
                         }
                     })
             

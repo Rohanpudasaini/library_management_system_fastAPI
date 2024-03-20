@@ -11,7 +11,7 @@ INVALID_REQUEST="Invalid Request"
 UNAUTHORIZED="Authorization Error"
 UNAUTHORIZED_MESSAGE="Incorrect credentials"
 TOKEN_ERROR="Expired Or Invalid Token"
-BAD_REQUEST="Bad Request"
+FORBIDDEN="Forbidden"
 NO_CONTENT="No content"
 NO_CONTENT_MESSAGE="No Content Found"
 INSUFFICIENT_RESOURCES="Insufficient Resources"
@@ -22,7 +22,7 @@ def invalid_length(name:str,length:int):
 def request_not_found(name:str,distinguisher:str):
     return f"No {name} with that {distinguisher}"
 
-def bad_request(name:str,distinguisher:str, already_issued:bool = False):
+def forbidden_request(name:str,distinguisher:str, already_issued:bool = False):
     if not already_issued:
         return f"{name} with that {distinguisher} already exsist"
     return f"You have already issued this {name}"

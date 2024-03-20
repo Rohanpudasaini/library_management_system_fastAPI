@@ -1,6 +1,6 @@
 import time
+from fastapi import HTTPException, status
 # import jwt
-from fastapi import HTTPException
 from jose import JWTError, jwt
 from decouple import config
 import error_constant 
@@ -47,7 +47,7 @@ def decodAccessJWT(token:str):
         return decode_token if decode_token['expiry'] >= time.time() else None
     except JWTError:
         raise HTTPException(
-                    status_code=400,
+                    status_code=status.HTTP_401_UNAUTHORIZED,
                     detail=error_constant.TOKEN_VERIFICATION_FAILED
                 )
     
@@ -59,6 +59,6 @@ def decodRefreshJWT(token:str):
         return decode_token if decode_token['expiry'] >= time.time() else None
     except JWTError:
         raise HTTPException(
-                    status_code=400,
+                    status_code=status.HTTP_401_UNAUTHORIZED,
                     detail=error_constant.TOKEN_VERIFICATION_FAILED
                 )
