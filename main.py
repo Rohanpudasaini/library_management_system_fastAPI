@@ -196,7 +196,7 @@ async def get_publisher(publisherId: int):
         detail={
             'Error': {
                 'error_type': error_constant.REQUEST_NOT_FOUND,
-                'error_message': error_constant.PUBLISHER_REQUEST_NOT_FOUND_MESSAGE,
+                'error_message': error_constant.request_not_found("publisher","ID"),
                 }
         }
     )
@@ -238,7 +238,7 @@ async def get_genre(genreId: int):
         detail={
             'Error': {
                 'error_type': error_constant.REQUEST_NOT_FOUND,
-                'error_message': error_constant.GENRE_REQUEST_NOT_FOUND_MESSAGE,
+                'error_message': error_constant.request_not_found("genre","id"),
             }
         }
     )
@@ -288,13 +288,13 @@ async def add_book(book_item: BookItem):
             status_code=404,
             detail={'error': {
                 'error_type': error_constant.REQUEST_NOT_FOUND,
-                'error_message': error_constant.PUBLISHER_REQUEST_NOT_FOUND_MESSAGE,
+                'error_message': error_constant.request_not_found("publisher","ID"),
             }})
     raise HTTPException(
         status_code=404,
         detail={'error': {
                 'error_type': error_constant.REQUEST_NOT_FOUND,
-                'error_message': error_constant.GENRE_REQUEST_NOT_FOUND_MESSAGE,
+                'error_message': error_constant.request_not_found("genre","ID"),
                 }})
 
 
@@ -304,8 +304,8 @@ async def get_book(isbn: str):
         raise HTTPException(
             status_code=400,
             detail={'error': {
-                'error_type': 'Invalid Request',
-                'error_message': 'The ISBN number must be 13 characer'
+                'error_type': error_constant.INVALID_REQUEST,
+                'error_message': error_constant.invalid_length("ISBN number",13)
             }})
 
     bookFound = book.get_from_id(isbn)
@@ -316,8 +316,8 @@ async def get_book(isbn: str):
     raise HTTPException(
         status_code=404,
         detail={'error': {
-                'error_type': 'Request Not Found',
-                'error_message': f'The Book with ISBN number {isbn} not found'
+                'error_type': error_constant.REQUEST_NOT_FOUND,
+                'error_message': error_constant.request_not_found("book","ISBN number")
                 }})
 
 
@@ -349,14 +349,14 @@ async def add_magazine(magazine_item: MagazineItem):
         raise HTTPException(
             status_code=404,
             detail={'error': {
-                'error_type': 'Request Not Found',
-                'error_message': f'The Publisher with Publisher Id {magazine_item.publisher_id} not found'
+                'error_type':    error_constant.REQUEST_NOT_FOUND,
+                'error_message': error_constant.request_not_found("publisher","id")
             }})
     raise HTTPException(
         status_code=404,
         detail={'error': {
-                'error_type': 'Request Not Found',
-                'error_message': f'The Genre with Genre Id {magazine_item.genre_id} not found'
+                'error_type':    error_constant.REQUEST_NOT_FOUND,
+                'error_message': error_constant.request_not_found("genre","id")
                 }})
 
 
@@ -366,8 +366,8 @@ async def get_magazine(issn: str):
         raise HTTPException(
             status_code=400,
             detail={'error': {
-                'error_type': 'Invalid Request',
-                'error_message': 'The ISSN number must be 8 characer'
+                'error_type': error_constant.INVALID_REQUEST,
+                'error_message': error_constant.invalid_length("ISSN number", 8)
             }})
 
     magazineFound = magazine.get_from_id(issn)
@@ -379,7 +379,7 @@ async def get_magazine(issn: str):
         status_code=404,
         detail={'error': {
                 'error_type':    error_constant.REQUEST_NOT_FOUND,
-                'error_message': error_constant.MAGAZINE_REQUEST_NOT_FOUND_MESSAGE
+                'error_message': error_constant.request_not_found("Magazine","ISSN number")
                 }})
 
 
@@ -456,8 +456,8 @@ async def get_user(username: str):
         status_code=404,
         detail={
             'Error': {
-                'error_type': 'Request Not Found',
-                'error_message': f'No user with username {username}'
+                'error_type':    error_constant.REQUEST_NOT_FOUND,
+                'error_message': error_constant.request_not_found("user",'usernaem')
             }
         }
     )
@@ -494,8 +494,8 @@ async def librarian_login(login_schema: LibrarianLogin):
             status_code=401,
             detail={
                 'Error': {
-                    'error_type': 'Request Not Found',
-                    'error_message': 'Incorrect email or password'
+                    'error_type': error_constant.UNAUTHORIZED,
+                    'error_message': error_constant.UNAUTHORIZED_MESSAGE
                 }
             }
         )
@@ -514,8 +514,8 @@ async def get_new_accessToken(refreshToken: str):
         status_code=403,
         detail={
             'Error': {
-                'error_type': 'Expired Or Invalid Token',
-                'error_message': 'Invalid or expired refresh token'
+                'error_type': error_constant.TOKEN_ERROR,
+                'error_message': error_constant.TOKEN_VERIFICATION_FAILED
             }
         }
     )
