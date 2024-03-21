@@ -49,18 +49,30 @@ class User(Base):
     record = relationship('Record', backref='user')
     
     
-    def get_all(self):
-        return session.query(User).all()
-    
+    def get_all(self, page, all, limit):
+        if all:
+            statement = Select(User)
+            users = session.execute(statement).all()
+        else:
+            statement = Select(User).offset((page-1)*limit).limit(limit)
+            users = session.execute(statement)
+        users = [user[0] for user in users]
+        return users
+        
     
     # Get only borrowed books or magazine
+    
     def get_all_borrowed(self, username):
         userFound = self.get_from_username(username)
+        book=[]
+        magazine = []
         if userFound.book_id:
             book = [book.title for book in userFound.book_id]
             
         if userFound.magazine_id:
             magazine = [magazine.title for magazine in userFound.magazine_id]
+        if book==[] and magazine == []:
+            return "No Book Borrowed"
         return {
             "Book": book,
             "Magazine": magazine
@@ -119,8 +131,17 @@ class Publisher(Base):
     books = relationship('Book', backref='publisher')
     magazine = relationship('Magazine', backref='publisher')
     
-    def get_all(self):
-        return session.query(Publisher).all()
+    def get_all(self,page,all,limit):
+        # return session.query(Publisher).all()
+        if all:
+            statement = Select(Publisher)
+            publisher_list = session.execute(statement).all()
+        else:
+            statement = Select(Publisher).offset((page-1)*limit).limit(limit)
+            publisher_list = session.execute(statement)
+        publisher_list = [publisher_obj[0] for publisher_obj in publisher_list]
+        return publisher_list
+    
     
     
     def get_from_id(self, id):
@@ -312,8 +333,16 @@ class Genre(Base):
     record = relationship('Record', backref='genre')
     
     
-    def get_all(self):
-        return session.query(Genre).all()
+    def get_all(self,page, all, limit):
+        # return session.query(Genre).all()
+        if all:
+            statement = Select(Genre)
+            genre_list = session.execute(statement).all()
+        else:
+            statement = Select(Genre).offset((page-1)*limit).limit(limit)
+            genre_list = session.execute(statement)
+        genre_list = [genre_obj[0] for genre_obj in genre_list]
+        return genre_list
     
     
     def get_from_id(self, id):

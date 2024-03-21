@@ -144,7 +144,6 @@ class LibrarianLogin(BaseModel):
                 {
                   "email": "admin@lms.com",
                   "password": "admin",
-                  "contact":"Test1",
                 }
             ]
         },
@@ -174,14 +173,19 @@ FastAPI Please find all the available path below',
             'publisher': '/publisher/',
             'genre': '/genre/',
             'librarian': '/librarian'
-        }
+        },
+        'tips': 'please head to /docs to try the endpoint online or see the docs.'
     }
 
 
 @app.get('/publisher', tags=['Publisher'])
-async def list_publishers():
+async def list_publishers(
+    page:int|None=1, 
+    all:bool|None=None, 
+    limit:int|None=3
+):
     return {
-        'Publishers': publisher.get_all()
+        'Publishers': publisher.get_all(page=page, all=all, limit=limit)
     }
 
 
@@ -209,7 +213,6 @@ async def get_publisher(publisherId: int):
     tags=['Publisher'],
     status_code=201
 )
-
 async def add_publisher(publisherItem: PublisherItem):
     return {
         'result': publisher.add(
@@ -221,9 +224,13 @@ async def add_publisher(publisherItem: PublisherItem):
 
 
 @app.get('/genre', tags=['Genre'])
-async def list_genre():
+async def list_genre(
+    page:int|None=1, 
+    all:bool|None=None, 
+    limit:int|None=3
+):
     return {
-        'Genre': genre.get_all()
+        'Genre': genre.get_all(page=page, all=all, limit=limit)
     }
 
 
@@ -385,9 +392,13 @@ async def get_magazine(issn: str):
 
 
 @app.get('/user', dependencies=[Depends(JwtBearer())], tags=['User'])
-async def list_users():
+async def list_users(
+    page:int|None=1, 
+    all:bool|None=None, 
+    limit:int|None=3
+):
     return {
-        'Users': user.get_all()
+        'Users': user.get_all(page=page, all=all, limit=limit)
     }
 
 
