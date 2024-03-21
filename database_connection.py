@@ -1,7 +1,7 @@
 from fastapi import HTTPException
 from sqlalchemy import create_engine, URL
 from sqlalchemy.orm import Session
-from sqlalchemy.exc import  IntegrityError
+from sqlalchemy.exc import  IntegrityError, OperationalError
 from decouple import config
 import error_constant 
 
@@ -23,6 +23,17 @@ url = URL.create(
 # create a engine with above created url
 engine = create_engine(url, echo=False)
 
+try:
+    engine.connect()
+
+except OperationalError:
+    raise HTTPException(
+        status_code=500,
+        detail={
+            "error": error_constant.INTERNAL_ERROR,
+            "error_message": "Some error on server please try again"
+        }
+    ) 
 # Create a session
 # TODO: make the session with context manager
 session = Session(bind=engine)
