@@ -1,11 +1,11 @@
-<p align="center">
-  <a ><img src="images/lms_logo1.png" alt="Library Management System" height=200></a>
-</p>
-<p align="center">
-    <em>Simple Library management system to learn FastAPI</em>
-</p>
-
 # Library Management System Using FASTAPI
+
+   <p align="center">
+     <a ><img src="images/lms_logo1.png" alt="Library Management System" height=200></a>
+   </p>
+   <p align="center">
+       <em>Simple Library management system to learn FastAPI</em>
+   </p>
 
 This is a simple library management system's api created using FastAPI for the endpoint, SQLAlchemy for ORM and PostgreSQL for the backend database.
 
@@ -55,7 +55,7 @@ This is a simple library management system's api created using FastAPI for the e
 
 ## Login and Authorization
 
-   I have use simple JWT token i.e Access token and Refresh token. You need to login as an librarian to get access to the access and refresh token at `/librarian/login` endpoint with post method with the email and password in body. Curently the access token is set to expir in 20 minutes and the refresh token is valid till about one week. Once you have sucessfully login, you need to save the both access refresh token. Once the access token expires, you need to hit the `/librarian/login/refresh` endpoint with get method and the saved refresh token as the query parameter, i.e `hocalhost/librarian/login/refresh?refreshToken=savedrefreshtoken`.
+   I have use simple JWT token i.e Access token and Refresh token. You need to login as an librarian to get access to the access and refresh token at `/login` endpoint with post method with the email and password in body. Curently the access token is set to expir in 20 minutes and the refresh token is valid till about one week. Once you have sucessfully login, you need to save the both access refresh token. Once the access token expires, you need to hit the `/refresh` endpoint with get method and the saved refresh token as the query parameter, i.e `/refresh?refreshToken=savedrefreshtoken`.
 
    In this way you can have prescistance login for a librarian.
 
