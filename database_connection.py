@@ -27,13 +27,7 @@ try:
     engine.connect()
 
 except OperationalError:
-    raise HTTPException(
-        status_code=500,
-        detail={
-            "error": error_constant.INTERNAL_ERROR,
-            "error_message": "Some error on server please try again"
-        }
-    ) 
+    print("No valid credentials, please ensure the presence of .env file")
 # Create a session
 # TODO: make the session with context manager
 session = Session(bind=engine)
