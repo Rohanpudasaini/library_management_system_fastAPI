@@ -428,7 +428,7 @@ async def user_borrow_magazine(borrowObject: BorrowMagazineObject):
 
 
 @app.post('/user/return_magazine', dependencies=[Depends(JwtBearer())], tags=['User'])
-async def user_borrow_magazine(returnObject: ReturnMagazineObject):
+async def user_return_magazine(returnObject: ReturnMagazineObject):
     fine = librarian.user_return_magazine(
         returnObject.username, returnObject.issn)
     if fine:
@@ -442,7 +442,7 @@ async def user_borrow_magazine(returnObject: ReturnMagazineObject):
 
 
 @app.post('/user/return_book', dependencies=[Depends(JwtBearer())], tags=['User'])
-async def user_borrow_book(returnObject: ReturnBookObject):
+async def user_return_book(returnObject: ReturnBookObject):
     fine = librarian.user_return_book(returnObject.username, returnObject.isbn)
     if fine:
         return {
