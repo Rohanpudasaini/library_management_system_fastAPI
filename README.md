@@ -51,11 +51,11 @@ This is a simple library management system's api created using FastAPI for the e
 ## Docs
 
    To know more about the endpoint and expected format you can got to `localhost/docs`(that is if you are hosting the api in your localhost)
-   You can use thos swaager API docs to test the api.
+   You can also use that swaager API docs to test the api.
 
 ## Login and Authorization
 
-   I have use simple JWT token i.e Access token and Refresh token. You need to login as an librarian to get access to the access and refresh token at `/login` endpoint with post method with the email and password in body. Curently the access token is set to expir in 20 minutes and the refresh token is valid till about one week. Once you have sucessfully login, you need to save the both access refresh token. Once the access token expires, you need to hit the `/refresh` endpoint with get method and the saved refresh token as the query parameter, i.e `/refresh?refreshToken=savedrefreshtoken`.
+   I have use simple JWT token i.e Access token and Refresh token. You need to login as an librarian to get access to the access and refresh token at `/login` endpoint with post method with the email and password in body. Curently the access token is set to expire in 20 minutes and the refresh token is valid till about one week. Once you have sucessfully login, you need to save the both access refresh token. Once the access token expires, you need to hit the `/refresh` endpoint with get method and the saved refresh token as the query parameter, i.e `/refresh?refreshToken=savedrefreshtoken`.
 
    In this way you can have prescistance login for a librarian.
 
