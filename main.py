@@ -523,7 +523,7 @@ async def get_new_accessToken(refreshToken: str):
             'userID': token["userID"]
         }
     raise HTTPException(
-        status_code=403,
+        status_code=401,
         detail={
             'Error': {
                 'error_type': error_constant.TOKEN_ERROR,

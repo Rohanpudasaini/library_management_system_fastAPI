@@ -34,19 +34,19 @@ class JwtBearer(HTTPBearer):
         if credentials:
             if not credentials.scheme == "Bearer":
                 raise HTTPException(
-                    status_code= 403,
+                    status_code= 401,
                     detail= error_constant.INVALID_TOKEN_SCHEME
                 )
             if not self.verify_jwt(credentials.credentials):
                 raise HTTPException(
-                    status_code=400,
+                    status_code=401,
                     detail= error_constant.TOKEN_VERIFICATION_FAILED
 ,
                 )
             return credentials.credentials
         else:
             raise HTTPException(
-                status_code= 403,
+                status_code= 401,
                 detail= error_constant.NO_TOKEN_IN_HEADER
             )
     
