@@ -12,6 +12,7 @@ JWT_SECRET_REFRESH = config('secret_refresh')
 
 
 # Create access token with userid, i.e email in this case
+# # Time limit is 1200sec i.e 20 minutes
 def encodeAccessJWT(userID: str):
     payload ={
         'userID': userID,
@@ -22,6 +23,7 @@ def encodeAccessJWT(userID: str):
     
     
 # Create refresh token with userid, i.e email in this case
+# Time limit is 604800sec i.e 7 days
 def encodeRefreshJWT(userID: str):
     payload ={
         'userID': userID,

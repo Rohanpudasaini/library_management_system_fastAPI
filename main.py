@@ -1,11 +1,11 @@
 from typing import Annotated
-from fastapi import FastAPI, HTTPException, Depends
+from fastapi import FastAPI, HTTPException, Depends, Request
 import error_constant
 from models import Book, Magazine, User, Publisher, Genre, Librarian
 from pydantic import BaseModel, EmailStr, Field, StrictStr
 from auth.jwt_handler import decodRefreshJWT, encodeAccessJWT, generateToken
 from auth.jwt_bearer import JwtBearer
-
+from logger import logger
 
 description = """
 Library Management API helps you do awesome stuff. 🚀
@@ -25,6 +25,18 @@ app = FastAPI(
         "email": "admin@rohanpudasaini.com.np",
     },
 )
+
+@app.middleware('http')
+async def log_middleware(request:Request, call_next):
+    log_dict = {
+        'url_host': request.url.hostname,
+        'url_path': request.url.path,
+        'url_query': request.url.query,
+        'method': request.method,
+    }
+    logger.info(log_dict, extra=log_dict)
+    response = await call_next(request)
+    return response
 
 book = Book()
 magazine = Magazine()
@@ -438,7 +450,7 @@ async def user_return_magazine(returnObject: ReturnMagazineObject):
                 "Message": f"{returnObject.username} have {fine} rs remaning"
             }
         }
-    return "Magazine Returned Sucessfully"
+    return {"sucess":"Magazine Returned Sucessfully"}
 
 
 @app.post('/user/return_book', dependencies=[Depends(JwtBearer())], tags=['User'])
@@ -451,7 +463,7 @@ async def user_return_book(returnObject: ReturnBookObject):
                 "Message": f"{returnObject.username} have {fine} rs remaning"
             }
         }
-    return "Book Returned Sucessfully"
+    return {"Sucess":"Book Returned Sucessfully"}
 
 
 @app.get('/user/{username}', dependencies=[Depends(JwtBearer())], tags=['User'])

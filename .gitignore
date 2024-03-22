@@ -4,3 +4,4 @@ __pycache__/
 *.ini
 *versions/
 test*/
+*.log

@@ -1,6 +1,6 @@
-from sqlalchemy.orm import DeclarativeBase, relationship
+from sqlalchemy.orm import DeclarativeBase, relationship, defer, mapped_column
 from sqlalchemy import Column, Select, String, DateTime, BigInteger, Integer, ForeignKey, Boolean
-from sqlalchemy.exc import IntegrityError, DataError
+from sqlalchemy.exc import IntegrityError
 from datetime import datetime, timedelta
 from database_connection import session, try_session_commit
 from fastapi import HTTPException
@@ -372,12 +372,12 @@ class Genre(Base):
 # Table schema of Librarian
 class Librarian(Base):
     __tablename__ = 'librarians'
-    id = Column(Integer(), primary_key=True)
-    name = Column(String(50), nullable=False, unique=True)
-    email = Column(String(50), unique=True, nullable=False)
-    password = Column(String(50), nullable=False)
-    address = Column(String(200), nullable=False)
-    phone_number = Column(BigInteger())
+    id = mapped_column(Integer(), primary_key=True)
+    name = mapped_column(String(50), nullable=False, unique=True)
+    email = mapped_column(String(50), unique=True, nullable=False)
+    password = mapped_column(String(50), nullable=False, deferred=True)
+    address = mapped_column(String(200), nullable=False)
+    phone_number = mapped_column(BigInteger())
     
     
     def get_all(self):
@@ -412,7 +412,10 @@ class Librarian(Base):
         Simply Validate if a librarian with given email and password exsist
         Return Librarian object or None
         """
-        return session.query(Librarian).where(Librarian.email==email, Librarian.password == password).one_or_none()
+        return session.query(Librarian).where(
+            Librarian.email==email,
+            Librarian.password == password
+            ).one_or_none()
     
     
     def user_add_book(self,username, isbn_number, days=15):
@@ -426,7 +429,10 @@ class Librarian(Base):
                 detail= {
                     "error":{
                         "error_type": error_constant.REQUEST_NOT_FOUND,
-                        "error_message": error_constant.request_not_found("book", "ISBN number")
+                        "error_message": error_constant.request_not_found(
+                            "book", 
+                            "ISBN number"
+                            )
                         }
                     })
         
@@ -453,7 +459,9 @@ class Librarian(Base):
                 detail= {
                     "error":{
                         "error_type": error_constant.INSUFFICIENT_RESOURCES,
-                        "error_message": error_constant.insufficient_resources("book")
+                        "error_message": error_constant.insufficient_resources(
+                            "book"
+                            )
                         }
                     })
 
@@ -462,7 +470,11 @@ class Librarian(Base):
                 detail= {
                     "error":{
                         "error_type": error_constant.BAD_REQUEST,
-                        "error_message": error_constant.bad_request("book","isbn",True)
+                        "error_message": error_constant.bad_request(
+                            "book",
+                            "isbn",
+                            True
+                            )
                         }
                     })
     
@@ -479,7 +491,9 @@ class Librarian(Base):
             detail= {
                 "error":{
                     "error_type": error_constant.REQUEST_NOT_FOUND,
-                    "error_message": error_constant.request_not_found("book", "ISBN number")
+                    "error_message": error_constant.request_not_found(
+                        "book", 
+                        "ISBN number")
                     }
                 })
         user_object = User.get_from_username(User,username)
@@ -526,7 +540,10 @@ class Librarian(Base):
                 #     }
                 "error":{
                     "error_type": error_constant.REQUEST_NOT_FOUND,
-                    "error_message": error_constant.request_not_found("username have issued books","ISBN number")
+                    "error_message": error_constant.request_not_found(
+                        "username have issued books",
+                        "ISBN number"
+                        )
                     }
                 
                 })
@@ -545,7 +562,10 @@ class Librarian(Base):
                 detail= {
                     "error":{
                         "error_type": error_constant.REQUEST_NOT_FOUND,
-                        "error_message": error_constant.request_not_found("magazine",'ISSN number')
+                        "error_message": error_constant.request_not_found(
+                            "magazine"
+                            ,"ISSN number"
+                            )
                         }
                     })
             
@@ -591,7 +611,10 @@ class Librarian(Base):
                 detail= {
                     "error":{
                         "error_type": error_constant.REQUEST_NOT_FOUND,
-                    "error_message": error_constant.request_not_found("username have issued magazine","ISSN number")
+                    "error_message": error_constant.request_not_found(
+                        "username have issued magazine"
+                        ,"ISSN number"
+                        )
                         }
                     })
                    
@@ -607,7 +630,10 @@ class Librarian(Base):
                 detail= {
                     "error":{
                         "error_type": error_constant.REQUEST_NOT_FOUND,
-                        "error_message": error_constant.request_not_found("magazine",'ISSN number')
+                        "error_message": error_constant.request_not_found(
+                            "magazine",
+                            "ISSN number"
+                            )
                         }
                     })
         # Check if user exsist and add the magazine to that user
@@ -638,7 +664,9 @@ class Librarian(Base):
                 detail= {
                     "error":{
                         "error_type": error_constant.INSUFFICIENT_RESOURCES,
-                        "error_message": error_constant.insufficient_resources("magazine")
+                        "error_message": error_constant.insufficient_resources(
+                            "magazine"
+                            )
                         }
                     })
         else:
@@ -646,7 +674,11 @@ class Librarian(Base):
                 detail= {
                     "error":{
                         "error_type": error_constant.BAD_REQUEST,
-                        "error_message": error_constant.bad_request("magazine","ISSN number", True)
+                        "error_message": error_constant.bad_request(
+                            "magazine",
+                            "ISSN number", 
+                            True
+                            )
                         }
                     })
             
