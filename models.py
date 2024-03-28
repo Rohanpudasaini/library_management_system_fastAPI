@@ -1,10 +1,11 @@
-from sqlalchemy.orm import DeclarativeBase, relationship, defer, mapped_column
+from sqlalchemy.orm import DeclarativeBase, relationship, mapped_column
 from sqlalchemy import Column, Select, String, DateTime, BigInteger, Integer, ForeignKey, Boolean
 from sqlalchemy.exc import IntegrityError
 from datetime import datetime, timedelta
 from database_connection import session, try_session_commit
 from fastapi import HTTPException
 import error_constant
+from auth.auth import verify_password
 
 
 
@@ -35,7 +36,8 @@ class User(Base):
     __tablename__ = 'users'
     id = Column(Integer(), primary_key=True)
     username = Column(String(50), nullable=False, unique=True)
-    email = Column(String(50), nullable=False)
+    email = Column(String(50), nullable=False, unique=True)
+    password = Column(String, nullable=False)
     date_created = Column(DateTime(), default=datetime.utcnow().date())
     expiry_date = Column(
         DateTime(), default=datetime.utcnow().date() + timedelta(days=60))
@@ -96,12 +98,30 @@ class User(Base):
                     })
         return user_object
     
+    def validate_user(self, email:str,password:str):
+        """
+        Simply Validate if a librarian with given email and password exsist
+        Return Librarian object or None
+        """
+        selected_user =  session.query(User).where(
+            User.email==email,
+            ).one_or_none()
+        print(selected_user)
+        if selected_user:
+            return verify_password(password,selected_user.password)
+        raise HTTPException(
+            status_code=401,
+            detail={
+                'Error': error_constant.UNAUTHORIZED_MESSAGE
+            }
+        )
     
-    def add(self,username,email, address, phone_number):
+    def add(self,username,email, address, phone_number,password):
         session.add(User(
             username=username,
             email=email,
             address=address,
+            password=password,
             phone_number=phone_number
             ))
         try:
@@ -114,7 +134,7 @@ class User(Base):
                 detail= {
                     "error":{
                         "error_type": error_constant.BAD_REQUEST,
-                        "error_message": error_constant.bad_request("User","username")
+                        "error_message": error_constant.bad_request("User","username or email")
                         }
                     })
         
@@ -375,7 +395,7 @@ class Librarian(Base):
     id = mapped_column(Integer(), primary_key=True)
     name = mapped_column(String(50), nullable=False, unique=True)
     email = mapped_column(String(50), unique=True, nullable=False)
-    password = mapped_column(String(50), nullable=False, deferred=True)
+    password = mapped_column(String, nullable=False, deferred=True)
     address = mapped_column(String(200), nullable=False)
     phone_number = mapped_column(BigInteger())
     
@@ -412,10 +432,18 @@ class Librarian(Base):
         Simply Validate if a librarian with given email and password exsist
         Return Librarian object or None
         """
-        return session.query(Librarian).where(
+        librarian_object =  session.query(Librarian).where(
             Librarian.email==email,
-            Librarian.password == password
             ).one_or_none()
+        if librarian_object:
+            return verify_password(password,librarian_object.password)
+        raise HTTPException(
+            status_code=401,
+            detail={
+                'Error': error_constant.UNAUTHORIZED_MESSAGE
+            }
+        )
+            
     
     
     def user_add_book(self,username, isbn_number, days=15):
