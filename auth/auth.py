@@ -14,16 +14,16 @@ REFRESH_SECRET = config('secret_refresh')
 # EXPIRE = config('expire_time')
 ALGORITHM = config('algorithm')
 
-def generate_JWT(username:str,role:str):
+def generate_JWT(email:str,role:str):
     payload = {
-        'user_id':username, 
+        'user_id':email, 
         'role': role,
         # 'expiry': (datetime.datetime.now(datetime.UTC) + datetime.timedelta(minutes=ACCESS_EXPIRE_TIME)).date(),
         'expiry': time.time() + 1200
         }
     encoded_access = jwt.encode(payload,ACCESS_SECRET,algorithm=ALGORITHM)
     payload = {
-        'user_id':username, 
+        'user_id':email, 
         'role': role,
         # 'expiry': datetime.datetime.now(datetime.UTC) + datetime.timedelta(days=REFRESH_EXPIRE_TIME)
         'expiry': time.time() + 604800

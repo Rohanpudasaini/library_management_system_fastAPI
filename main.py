@@ -4,8 +4,6 @@ from auth import auth
 import error_constant
 from models import Book, Magazine, User, Publisher, Genre, Librarian
 from pydantic import BaseModel, EmailStr, Field, StrictStr
-# from auth.jwt_handler import decodRefreshJWT, encodeAccessJWT, generateToken
-# from auth.jwt_bearer import JwtBearer
 from logger import logger
 
 description = """
@@ -74,7 +72,7 @@ class BookItem(BaseModel):
 
 
 class BorrowBookObject(BaseModel):
-    username: str
+    username: str|None = None
     isbn: Annotated[StrictStr, Field(
         min_length=13,
         max_length=13,
@@ -84,7 +82,7 @@ class BorrowBookObject(BaseModel):
 
 
 class ReturnBookObject(BaseModel):
-    username: str
+    username: str|None = None
     isbn: Annotated[StrictStr, Field(
         min_length=13,
         max_length=13,
@@ -93,7 +91,7 @@ class ReturnBookObject(BaseModel):
 
 
 class BorrowMagazineObject(BaseModel):
-    username: str
+    username: str|None=None
     issn: Annotated[StrictStr, Field(
         min_length=8,
         max_length=8,
@@ -103,7 +101,7 @@ class BorrowMagazineObject(BaseModel):
 
 
 class ReturnMagazineObject(BaseModel):
-    username: str
+    username: str|None=None
     issn: Annotated[StrictStr, Field(
         min_length=8,
         max_length=8,
@@ -446,53 +444,144 @@ async def borrowed_items(username: str):
     }
 
 
-@app.post('/user/borrow_book', dependencies=[Depends(token_in_header)], tags=['User'])
-async def user_borrow_book(borrowObject: BorrowBookObject):
-    librarian.user_add_book(borrowObject.username, borrowObject.isbn)
+@app.post('/user/borrow_book', tags=['User'])
+async def user_borrow_book(borrowObject: BorrowBookObject, token = Depends(token_in_header)):
+    if token['role']!= 'user':
+        if borrowObject.username:
+            librarian.user_add_book(borrowObject.username, borrowObject.isbn)
+        else:
+            raise HTTPException(
+                status_code=400,
+                detail={
+                    'error': error_constant.BAD_REQUEST,
+                    'error_message': "No Username in provided, admins must provide username to whom the book should be issued to " 
+                }
+            )
+    else:
+        username = user.get_username_from_email(token['user_id'])
+        librarian.user_add_book(username, borrowObject.isbn)
+        
     return {
         "Sucess": "Book Borrowed Sucessfully"
     }
 
 
-@app.post('/user/borrow_magazine', dependencies=[Depends(token_in_header)], tags=['User'])
-async def user_borrow_magazine(borrowObject: BorrowMagazineObject):
-    librarian.user_add_magazine(borrowObject.username, borrowObject.issn)
+@app.post('/user/borrow_magazine', tags=['User'])
+async def user_borrow_magazine(borrowObject: BorrowMagazineObject, token=Depends(token_in_header)):
+    if token['role']!= 'user':
+        if borrowObject.username:
+            librarian.user_add_magazine(borrowObject.username, borrowObject.issn)
+        else:
+            raise HTTPException(
+                status_code=400,
+                detail={
+                    'error': error_constant.BAD_REQUEST,
+                    'error_message': "No Username in provided, admins must provide username to whom the magazine should be issued to " 
+                }
+            )
+    else:
+        username = user.get_username_from_email(token['user_id'])
+        librarian.user_add_magazine(username, borrowObject.issn)
     return {
         "Sucess": "Magazine Borrowed Sucessfully"
     }
 
 
-@app.post('/user/return_magazine', dependencies=[Depends(token_in_header)], tags=['User'])
-async def user_return_magazine(returnObject: ReturnMagazineObject):
-    fine = librarian.user_return_magazine(
-        returnObject.username, returnObject.issn)
-    if fine:
-        return {
-            "Fine Remaning": {
-                "Fine Ammount": fine,
-                "Message": f"{returnObject.username} have {fine} rs remaning"
+@app.post('/user/return_magazine', tags=['User'])
+async def user_return_magazine(returnObject: ReturnMagazineObject, token = Depends(token_in_header)):
+    if token['role']!= 'user':
+        if returnObject.username:
+            fine = librarian.user_return_magazine(
+                returnObject.username, returnObject.issn)
+            if fine:
+                return {"Sucess": "Sucesfully returned, but fine remaning",
+                    "Fine Remaning": {
+                        "Fine Ammount": fine,
+                        "Message": f"{returnObject.username} have {fine} rs remaning"
+                    }
+                }
+        else:
+            raise HTTPException(
+                status_code=400,
+                detail={
+                    'error': error_constant.BAD_REQUEST,
+                    'error_message': "No Username in provided, admins must provide username of user returning magazine" 
+                }
+            )
+    else:
+        username = user.get_username_from_email(token['user_id'])
+        fine = librarian.user_return_magazine(username, returnObject.issn)
+        if fine:
+            return {"Sucess": "Sucesfully returned, but fine remaning",
+                "Fine Remaning": {
+                    "Fine Ammount": fine,
+                    "Message": f"{returnObject.username} have {fine} rs remaning"
+                }
             }
-        }
+        
     return {"sucess":"Magazine Returned Sucessfully"}
 
 
-@app.post('/user/return_book', dependencies=[Depends(token_in_header)], tags=['User'])
-async def user_return_book(returnObject: ReturnBookObject):
-    fine = librarian.user_return_book(returnObject.username, returnObject.isbn)
-    if fine:
-        return {
-            "Fine Remaning": {
-                "Fine Ammount": fine,
-                "Message": f"{returnObject.username} have {fine} rs remaning"
+@app.post('/user/return_book', tags=['User'])
+async def user_return_book(returnObject: ReturnBookObject, token = Depends(token_in_header)):
+    if token['role']!= 'user':
+        if returnObject.username:
+            fine = librarian.user_return_book(returnObject.username, returnObject.isbn)
+            if fine:
+                return {
+                    "Sucess": "Sucesfully returned, but fine remaning",
+                    "Fine Remaning": {
+                        "Fine Ammount": fine,
+                        "Message": f"{returnObject.username} have {fine} rs remaning"
+                    }
+                }
+        else:
+            raise HTTPException(
+                status_code=400,
+                detail={
+                    'error': error_constant.BAD_REQUEST,
+                    'error_message': "No Username in provided, admins must provide username of user returning book" 
+                }
+            )
+    else:
+        username = user.get_username_from_email(token['user_id'])
+        fine = librarian.user_return_book(username, returnObject.isbn)
+        if fine:
+            return {
+                "Sucess": "Sucesfully returned, but fine remaning",
+                "Fine Remaning": {
+                    "Fine Ammount": fine,
+                    "Message": f"{returnObject.username} have {fine} rs remaning"
+                }
             }
-        }
     return {"Sucess":"Book Returned Sucessfully"}
 
+
+@app.get('/me')
+async def get_my_info(token = Depends(token_in_header)):
+    if token['role'] =='user':
+        username = user.get_username_from_email(token['user_id'])
+        user_details = user.get_from_username(username)
+        user_details.__dict__.pop('password')
+        return{
+            'User':{
+                'user_details': user_details
+            }
+        }
+    else:
+        librarian_details = librarian.get_from_email(token['user_id'])
+        return{
+            'Librarian':{
+                'librarian_details': librarian_details
+            }
+        }
+        
 
 @app.get('/user/{username}', dependencies=[Depends(token_in_header)], tags=['User'])
 async def get_user(username: str):
     userFound = user.get_from_username(username)
     if userFound:
+        userFound.__dict__.pop('password')
         return {
             'User': {
                 "user_details": userFound,

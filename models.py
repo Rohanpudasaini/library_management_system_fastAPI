@@ -98,6 +98,23 @@ class User(Base):
                     })
         return user_object
     
+    
+    def get_username_from_email(self, email):
+        """
+        Give back the database instance of the user object
+        from username
+        """
+        user_object =  session.query(User).where(User.email==email).one_or_none()
+        if not user_object:
+            raise HTTPException(status_code=404,
+                detail= {
+                    "error":{
+                        "error_type": error_constant.REQUEST_NOT_FOUND,
+                        "error_message": error_constant.request_not_found("user","username")
+                        }
+                    })
+        return user_object.username
+    
     def validate_user(self, email:str,password:str):
         """
         Simply Validate if a librarian with given email and password exsist
@@ -443,7 +460,6 @@ class Librarian(Base):
                 'Error': error_constant.UNAUTHORIZED_MESSAGE
             }
         )
-            
     
     
     def user_add_book(self,username, isbn_number, days=15):
@@ -579,7 +595,9 @@ class Librarian(Base):
                 
     def user_return_magazine(self, username, issn_number):
         """
-        Return magazine with given issn number from a user with given username
+        User return magazine with given issn number from a user with given username
+        
+        Returns -> fine:int or None
         """
         
         magazine_to_return = session.query(Magazine).where(
@@ -709,7 +727,19 @@ class Librarian(Base):
                             )
                         }
                     })
-            
+
+
+    def get_from_email(self,email):
+        _librarian = session.query(Librarian).where(Librarian.email==email).one_or_none()
+        if _librarian:
+            return _librarian
+        raise HTTPException(
+            status_code=404,
+            detail={
+                'error': error_constant.REQUEST_NOT_FOUND,
+                'error_message': error_constant.request_not_found('Librarian', 'details, please check with super admin.')
+            }
+        )
 
 # Table schema for Record
 class Record(Base):
