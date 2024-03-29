@@ -1,0 +1,17 @@
+alembic==1.13.1
+cryptography==41.0.7
+email_validator==2.1.1
+fastapi==0.110.0
+psycopg2-binary==2.9.9
+pydantic==2.6.3
+pydantic-extra-types==2.5.0
+pydantic-settings==2.2.1
+pydantic_core==2.16.3
+SQLAlchemy==2.0.25
+uvicorn==0.27.1
+python-decouple
+python-jose
+passlib[bcrypt]
+python-multipart
+uvloop==0.19.0
+logtail-python==0.2.10

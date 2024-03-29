@@ -1,0 +1,7 @@
+.env
+__pycache__/
+.vscode/
+*.ini
+test*/
+*.log
+docker-compose.yml
