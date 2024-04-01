@@ -1,10 +1,11 @@
 from typing import Annotated
-from fastapi import FastAPI, HTTPException, Depends, Header, Request
+from fastapi import FastAPI, HTTPException, Depends, Header, Request, Response
 from auth import auth
 import error_constant
-from models import Book, Magazine, User, Publisher, Genre, Librarian
+from models import Book, Magazine, User, Publisher, Genre
 from pydantic import BaseModel, EmailStr, Field, StrictStr
 from logger import logger
+
 
 description = """
 Library Management API helps you do awesome stuff. 🚀
@@ -36,13 +37,16 @@ async def log_middleware(request:Request, call_next):
     logger.info(log_dict, extra=log_dict)
     response = await call_next(request)
     return response
+    # body = b''.join([section async for section in response.body_iterator])
+    # #print(json.loads(body.decode()))
+    # new_response = Response(content=body, status_code=response.status_code, headers=dict(response.headers))
+    # return new_response
 
 book = Book()
 magazine = Magazine()
 publisher = Publisher()
 genre = Genre()
 user = User()
-librarian = Librarian()
 
 
 class BookItem(BaseModel):
@@ -183,7 +187,8 @@ def token_in_header(Authorization:str = Header()):
         )
     
 def admin_only(payload =Depends(token_in_header)):
-    if payload['role'] == 'admin':
+    if payload['role'] == 1:
+        print("Hello")
         return 'Hello'
     raise HTTPException(
         status_code=401,
@@ -431,7 +436,7 @@ async def list_users(
     limit:int|None=3
 ):
     return {
-        'Users': user.get_all(page=page, all=all, limit=limit)
+        'Users': user.get_all_user(page=page, all=all, limit=limit)
     }
 
 
@@ -448,7 +453,7 @@ async def borrowed_items(username: str):
 async def user_borrow_book(borrowObject: BorrowBookObject, token = Depends(token_in_header)):
     if token['role']!= 'user':
         if borrowObject.username:
-            librarian.user_add_book(borrowObject.username, borrowObject.isbn)
+            user.borrow_book(borrowObject.username, borrowObject.isbn)
         else:
             raise HTTPException(
                 status_code=400,
@@ -459,7 +464,7 @@ async def user_borrow_book(borrowObject: BorrowBookObject, token = Depends(token
             )
     else:
         username = user.get_username_from_email(token['user_id'])
-        librarian.user_add_book(username, borrowObject.isbn)
+        user.borrow_book(username, borrowObject.isbn)
         
     return {
         "Sucess": "Book Borrowed Sucessfully"
@@ -470,7 +475,7 @@ async def user_borrow_book(borrowObject: BorrowBookObject, token = Depends(token
 async def user_borrow_magazine(borrowObject: BorrowMagazineObject, token=Depends(token_in_header)):
     if token['role']!= 'user':
         if borrowObject.username:
-            librarian.user_add_magazine(borrowObject.username, borrowObject.issn)
+            user.borrow_magazine(borrowObject.username, borrowObject.issn)
         else:
             raise HTTPException(
                 status_code=400,
@@ -481,7 +486,7 @@ async def user_borrow_magazine(borrowObject: BorrowMagazineObject, token=Depends
             )
     else:
         username = user.get_username_from_email(token['user_id'])
-        librarian.user_add_magazine(username, borrowObject.issn)
+        user.borrow_magazine(username, borrowObject.issn)
     return {
         "Sucess": "Magazine Borrowed Sucessfully"
     }
@@ -491,7 +496,7 @@ async def user_borrow_magazine(borrowObject: BorrowMagazineObject, token=Depends
 async def user_return_magazine(returnObject: ReturnMagazineObject, token = Depends(token_in_header)):
     if token['role']!= 'user':
         if returnObject.username:
-            fine = librarian.user_return_magazine(
+            fine = user.return_magazine(
                 returnObject.username, returnObject.issn)
             if fine:
                 return {"Sucess": "Sucesfully returned, but fine remaning",
@@ -510,7 +515,7 @@ async def user_return_magazine(returnObject: ReturnMagazineObject, token = Depen
             )
     else:
         username = user.get_username_from_email(token['user_id'])
-        fine = librarian.user_return_magazine(username, returnObject.issn)
+        fine = user.return_magazine(username, returnObject.issn)
         if fine:
             return {"Sucess": "Sucesfully returned, but fine remaning",
                 "Fine Remaning": {
@@ -526,7 +531,7 @@ async def user_return_magazine(returnObject: ReturnMagazineObject, token = Depen
 async def user_return_book(returnObject: ReturnBookObject, token = Depends(token_in_header)):
     if token['role']!= 'user':
         if returnObject.username:
-            fine = librarian.user_return_book(returnObject.username, returnObject.isbn)
+            fine = user.return_book(returnObject.username, returnObject.isbn)
             if fine:
                 return {
                     "Sucess": "Sucesfully returned, but fine remaning",
@@ -545,7 +550,7 @@ async def user_return_book(returnObject: ReturnBookObject, token = Depends(token
             )
     else:
         username = user.get_username_from_email(token['user_id'])
-        fine = librarian.user_return_book(username, returnObject.isbn)
+        fine = user.return_book(username, returnObject.isbn)
         if fine:
             return {
                 "Sucess": "Sucesfully returned, but fine remaning",
@@ -559,23 +564,16 @@ async def user_return_book(returnObject: ReturnBookObject, token = Depends(token
 
 @app.get('/me')
 async def get_my_info(token = Depends(token_in_header)):
-    if token['role'] =='user':
-        username = user.get_username_from_email(token['user_id'])
-        user_details = user.get_from_username(username)
-        user_details.__dict__.pop('password')
-        return{
-            'User':{
-                'user_details': user_details
-            }
+    username = user.get_username_from_email(token['user_id'])
+    user_details = user.get_from_username(username)
+    # user_details.__dict__.pop('password')
+    # print(response.__dict__)
+    return{
+        'User':{
+            'user_details': user_details
         }
-    else:
-        librarian_details = librarian.get_from_email(token['user_id'])
-        return{
-            'Librarian':{
-                'librarian_details': librarian_details
-            }
-        }
-        
+    }
+
 
 @app.get('/user/{username}', dependencies=[Depends(token_in_header)], tags=['User'])
 async def get_user(username: str):
@@ -613,57 +611,34 @@ async def add_user(userItem: UserItem):
 @app.get('/librarian', tags=['Librarian'], dependencies=[Depends(admin_only)])
 async def list_librarians():
     return {
-        'Users': librarian.get_all()
+        'Users': user.get_all_librarian()
     }
 
 
-@app.post('/librarian-login', tags=['Librarian'])
-async def librarian_login(login_schema: LoginScheme):
-    valid = librarian.validate_librarian(
-        login_schema.email, login_schema.password)
-    if valid:
-        # token = encodeAccessJWT(login_schema.email)
-        token = auth.generate_JWT(login_schema.email,role='admin')
-        # token.update({'email': login_schema.email})
-        return {
-            'access_token':token[0],
-            'refresh_token': token[1]
-            }
-    else:
-        raise HTTPException(
-            status_code=401,
-            detail={
-                'Error': {
-                    'error_type': error_constant.UNAUTHORIZED,
-                    'error_message': error_constant.UNAUTHORIZED_MESSAGE
-                }
-            }
-        )
-
-@app.post('/user-login', tags=['Librarian'])
-async def user_login(login_schema: LoginScheme):
-    valid = user.validate_user(login_schema.email, login_schema.password)
+@app.post('/login', tags=['Librarian'])
+async def login(login_schema: LoginScheme):
+    valid_user = user.validate_user(login_schema.email, login_schema.password)
     # valid = librarian.validate_librarian(
     #     login_schema.email, login_schema.password)
-    print(valid)
-    if valid:
+    # if valid:
         # token = encodeAccessJWT(login_schema.email)
-        token = auth.generate_JWT(login_schema.email,role='user')
-        # token.update({'email': login_schema.email})
-        return {
-            'access_token':token[0],
-            'refresh_token': token[1]
-            }
-    else:
-        raise HTTPException(
-            status_code=401,
-            detail={
-                'Error': {
-                    'error_type': error_constant.UNAUTHORIZED,
-                    'error_message': error_constant.UNAUTHORIZED_MESSAGE
-                }
-            }
-        )
+    token = auth.generate_JWT(login_schema.email,role=valid_user.role.name)
+    # token.update({'email': login_schema.email})
+    return {
+        'access_token':token[0],
+        'refresh_token': token[1],
+        'role': valid_user.role.name
+        }
+    # else:
+    #     raise HTTPException(
+    #         status_code=401,
+    #         detail={
+    #             'Error': {
+    #                 'error_type': error_constant.UNAUTHORIZED,
+    #                 'error_message': error_constant.UNAUTHORIZED_MESSAGE
+    #             }
+    #         }
+    #     )
 
 @app.get('/refresh', tags=['Librarian'])
 async def get_new_accessToken(refreshToken: str):

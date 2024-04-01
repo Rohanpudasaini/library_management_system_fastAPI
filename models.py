@@ -29,31 +29,46 @@ class MemberMagazine(Base):
     user_id = Column('user_id', Integer, ForeignKey('users.id'))
     magazine_id = Column('magazine_id', String,
                          ForeignKey('magazines.issn_number'))
-   
-   
+
+class Role(Base):
+    __tablename__='roles'
+    id = mapped_column(Integer, primary_key=True)
+    name = mapped_column(String, nullable=True)
+    user = relationship('User',back_populates='role')
 # Table schema of User/member    
 class User(Base):
     __tablename__ = 'users'
-    id = Column(Integer(), primary_key=True)
-    username = Column(String(50), nullable=False, unique=True)
-    email = Column(String(50), nullable=False, unique=True)
-    password = Column(String, nullable=False)
-    date_created = Column(DateTime(), default=datetime.utcnow().date())
-    expiry_date = Column(
+    id = mapped_column(Integer(), primary_key=True)
+    username = mapped_column(String(50), nullable=False, unique=True)
+    email = mapped_column(String(50), nullable=False, unique=True)
+    password = mapped_column(String, nullable=False,deferred=True)
+    date_created = mapped_column(DateTime(), default=datetime.utcnow().date())
+    expiry_date = mapped_column(
         DateTime(), default=datetime.utcnow().date() + timedelta(days=60))
-    address = Column(String(200), nullable=False)
-    phone_number = Column(BigInteger())
-    fine = Column(Integer, default=0)
+    address = mapped_column(String(200), nullable=False)
+    phone_number = mapped_column(BigInteger())
+    fine = mapped_column(Integer, default=0)
     book_id = relationship(
         'Book', secondary='member_book', back_populates='user_id')
     magazine_id = relationship(
         'Magazine', secondary='member_magazine', back_populates='user_id')
     record = relationship('Record', backref='user')
+    role_id = mapped_column(Integer,ForeignKey('roles.id'),nullable=True, default=2)
+    role = relationship('Role', back_populates='user')
     
-    
-    def get_all(self, page, all, limit):
+    def get_all_user(self, page, all, limit):
         if all:
-            statement = Select(User)
+            statement = Select(User).where(User.role==2)
+            users = session.execute(statement).all()
+        else:
+            statement = Select(User).offset((page-1)*limit).limit(limit)
+            users = session.execute(statement)
+        users = [user[0] for user in users]
+        return users
+    
+    def get_all_librarian(self, page, all, limit):
+        if all:
+            statement = Select(User).where(User.role==1)
             users = session.execute(statement).all()
         else:
             statement = Select(User).offset((page-1)*limit).limit(limit)
@@ -101,8 +116,7 @@ class User(Base):
     
     def get_username_from_email(self, email):
         """
-        Give back the database instance of the user object
-        from username
+        Give back the username of user from username
         """
         user_object =  session.query(User).where(User.email==email).one_or_none()
         if not user_object:
@@ -114,7 +128,8 @@ class User(Base):
                         }
                     })
         return user_object.username
-    
+
+
     def validate_user(self, email:str,password:str):
         """
         Simply Validate if a librarian with given email and password exsist
@@ -123,9 +138,10 @@ class User(Base):
         selected_user =  session.query(User).where(
             User.email==email,
             ).one_or_none()
-        print(selected_user)
         if selected_user:
-            return verify_password(password,selected_user.password)
+            verified = verify_password(password,selected_user.password)
+            if verified:
+                return selected_user
         raise HTTPException(
             status_code=401,
             detail={
@@ -154,8 +170,272 @@ class User(Base):
                         "error_message": error_constant.bad_request("User","username or email")
                         }
                     })
+    def borrow_book(self,username, isbn_number, days=15):
+        """
+        Add book with given isbn number to a user with given username
+        """
+        book_to_add = session.query(Book).where(
+            Book.isbn_number == isbn_number).one_or_none()
+        if not book_to_add:
+            raise HTTPException(status_code=404,
+                detail= {
+                    "error":{
+                        "error_type": error_constant.REQUEST_NOT_FOUND,
+                        "error_message": error_constant.request_not_found(
+                            "book", 
+                            "ISBN number"
+                            )
+                        }
+                    })
         
+        user_object = self.get_from_username(username)
+        
+        user_object.book_id += [book_to_add]
+        book_to_add.available_number -= 1
+        user_already_exsist = session.query(Record).where(
+            Record.book_id == book_to_add.isbn_number,
+            Record.member_id == user_object.id,
+            Record.returned == False
+        ).count()
+        if not user_already_exsist and book_to_add.available_number > 0:
+            book_record = Record(
+                user=user_object, book=book_to_add,
+                genre=book_to_add.genre, issued_date=datetime.utcnow().date(),
+                expected_return_date=(
+                    datetime.utcnow().date() + timedelta(days=days))
+            )
+            session.add(book_record)
+            try_session_commit(session)
+        elif book_to_add.available_number == 0:
+            raise HTTPException(status_code=409,
+                detail= {
+                    "error":{
+                        "error_type": error_constant.INSUFFICIENT_RESOURCES,
+                        "error_message": error_constant.insufficient_resources(
+                            "book"
+                            )
+                        }
+                    })
+
+        else:
+            raise HTTPException(status_code=400,
+                detail= {
+                    "error":{
+                        "error_type": error_constant.BAD_REQUEST,
+                        "error_message": error_constant.bad_request(
+                            "book",
+                            "isbn",
+                            True
+                            )
+                        }
+                    })
+    
+    
+    def return_book(self,username, isbn_number):
+        """
+        Return book with given isbn number from a user with given username
+        """
+        book_to_return = session.query(Book).where(
+            Book.isbn_number == isbn_number).one_or_none()
+        # Invalid ISBN ERROR
+        if not book_to_return:
+            raise HTTPException(status_code=404,
+            detail= {
+                "error":{
+                    "error_type": error_constant.REQUEST_NOT_FOUND,
+                    "error_message": error_constant.request_not_found(
+                        "book", 
+                        "ISBN number")
+                    }
+                })
+        user_object = self.get_from_username(username)
+        
+        # Get Unreturned books
+        got_record = session.query(Record).where(
+            Record.member_id == user_object.id,
+            Record.book_id == isbn_number,
+            Record.returned == False
+        ).one_or_none()
+        fine = 0
+        
+        if got_record:
+            books_record = got_record
+
+            # Check if the expected return date is 3 days before, if yes no fine is calculated
+            if books_record.expected_return_date.date() < datetime.utcnow().date():
+                extra_days = (datetime.utcnow().date() -
+                              books_record.expected_return_date.date()).days
+                
+                # For each days after 3 days, fine is calculated as Rs 3 per day 
+                if extra_days > 3:
+                    fine = extra_days * 3
+
+            #sucessfull return, increased the available number
+            # Also marked the book returned in Record
+            book_to_return.available_number += 1
+            books_record.returned = True
+            books_record.returned_date = datetime.utcnow().date()
             
+            # Delete the record from association table.
+            session.query(MemberBook).filter(
+                MemberBook.book_id == isbn_number,
+                MemberBook.user_id == user_object.id
+            ).delete()
+            try_session_commit(session)
+            return fine
+        else:
+            raise HTTPException(status_code=404,
+            detail= {
+                # "error":{
+                #     "error_type": error_constant.REQUEST_NOT_FOUND,
+                #     "error_message": f"User {username} haven't borrowed {book_to_return.title}"
+                #     }
+                "error":{
+                    "error_type": error_constant.REQUEST_NOT_FOUND,
+                    "error_message": error_constant.request_not_found(
+                        "username have issued books",
+                        "ISBN number"
+                        )
+                    }
+                
+                })
+            
+                
+    def return_magazine(self, username, issn_number):
+        """
+        User return magazine with given issn number from a user with given username
+        
+        Returns -> fine:int or None
+        """
+        
+        magazine_to_return = session.query(Magazine).where(
+            Magazine.issn_number == issn_number).one_or_none()
+
+        if not magazine_to_return:
+            raise HTTPException(status_code=404,
+                detail= {
+                    "error":{
+                        "error_type": error_constant.REQUEST_NOT_FOUND,
+                        "error_message": error_constant.request_not_found(
+                            "magazine"
+                            ,"ISSN number"
+                            )
+                        }
+                    })
+            
+        # Check if username exsist
+        user_object = self.get_from_username(username)
+
+        # Check if record exsist
+        got_record = session.query(Record).where(
+            Record.member_id == user_object.id,
+            Record.magazine_id == issn_number,
+            Record.returned == False
+        ).one_or_none()
+        fine=0
+        if got_record:
+            magazine_record = got_record
+            
+            # Check if the expected returned date is expired
+            if magazine_record.expected_return_date.date() < datetime.utcnow().date():
+
+                extra_days = (magazine_record.expected_return_date.date(
+                ) - datetime.utcnow().date()).days
+
+                # if magazine is't returned after 3 days of expected date
+                # Calculate fine as Rs3 per day 
+                if extra_days > 3:
+                    fine = extra_days * 3
+                    
+            # Magazine Sucessfully returned
+            # Increase available number and marked returned
+            magazine_to_return.available_number += 1
+            magazine_record.returned = True
+            magazine_record.returned_date = datetime.utcnow().date()
+
+            # Delete the record from association table 
+            session.query(MemberMagazine).filter(
+                MemberMagazine.magazine_id == issn_number,
+                MemberMagazine.user_id == user_object.id
+            ).delete()
+            try_session_commit(session) 
+            return fine
+        else:
+            raise HTTPException(status_code=404,
+                detail= {
+                    "error":{
+                        "error_type": error_constant.REQUEST_NOT_FOUND,
+                    "error_message": error_constant.request_not_found(
+                        "username have issued magazine"
+                        ,"ISSN number"
+                        )
+                        }
+                    })
+
+
+    def borrow_magazine(self,username, issn_number, days=15):
+        """
+        Add magazine with given issn number to a user with given username
+        """
+        magazine_to_add = session.query(Magazine).where(
+            Magazine.issn_number == issn_number).one_or_none()
+        if not magazine_to_add:
+            raise HTTPException(status_code=404,
+                detail= {
+                    "error":{
+                        "error_type": error_constant.REQUEST_NOT_FOUND,
+                        "error_message": error_constant.request_not_found(
+                            "magazine",
+                            "ISSN number"
+                            )
+                        }
+                    })
+        # Check if user exsist and add the magazine to that user
+        user_object = self.get_from_username(username)
+        user_object.magazine_id += [magazine_to_add]
+        
+        # Check record if the magazine is already issued to same member
+        user_already_exsist = session.query(Record).where(
+            Record.magazine_id == magazine_to_add.issn_number,
+            Record.member_id == user_object.id,
+            Record.returned == False
+        ).count()
+        
+        if not user_already_exsist and magazine_to_add.available_number > 0:
+            magazine_to_add.available_number -= 1
+            magazine_record = Record(
+                user=user_object,
+                magazine=magazine_to_add,
+                genre=magazine_to_add.genre,
+                issued_date=datetime.utcnow().date(),
+                expected_return_date=(
+                    datetime.utcnow().date() + timedelta(days=days))
+            )
+            session.add(magazine_record)
+            try_session_commit(session)
+        elif magazine_to_add.available_number == 0:
+            raise HTTPException(status_code=409,
+                detail= {
+                    "error":{
+                        "error_type": error_constant.INSUFFICIENT_RESOURCES,
+                        "error_message": error_constant.insufficient_resources(
+                            "magazine"
+                            )
+                        }
+                    })
+        else:
+            raise HTTPException(status_code=400,
+                detail= {
+                    "error":{
+                        "error_type": error_constant.BAD_REQUEST,
+                        "error_message": error_constant.bad_request(
+                            "magazine",
+                            "ISSN number", 
+                            True
+                            )
+                        }
+                    })
+    
     
 
 # Table schema of publisher   
@@ -404,342 +684,7 @@ class Genre(Base):
                         "error_message": error_constant.bad_request("Genre", "name")
                         }
                     })
-    
-    
-# Table schema of Librarian
-class Librarian(Base):
-    __tablename__ = 'librarians'
-    id = mapped_column(Integer(), primary_key=True)
-    name = mapped_column(String(50), nullable=False, unique=True)
-    email = mapped_column(String(50), unique=True, nullable=False)
-    password = mapped_column(String, nullable=False, deferred=True)
-    address = mapped_column(String(200), nullable=False)
-    phone_number = mapped_column(BigInteger())
-    
-    
-    def get_all(self):
-        """
-        Get all Librarian Info and only show id name and email
-        return a list of librarian info in a dictionary format
-        
-        return format:
-        [
-            {
-              "id": 1,
-              "name": "Kausha Gautam",
-              "email": "admin1@lms.com"
-            },
-            {
-              "id": 2,
-              "name": "Sakar Poudel",
-              "email": "admin@lms.com"
-            }
-        ]
-        """
-        result = session.query(
-            Librarian.id, 
-            Librarian.name, 
-            Librarian.email
-        ).all()
-        return [dict(id=row[0], name=row[1], email=row[2]) for row in result]
-    
-    
-    def validate_librarian(self, email:str,password:str):
-        """
-        Simply Validate if a librarian with given email and password exsist
-        Return Librarian object or None
-        """
-        librarian_object =  session.query(Librarian).where(
-            Librarian.email==email,
-            ).one_or_none()
-        if librarian_object:
-            return verify_password(password,librarian_object.password)
-        raise HTTPException(
-            status_code=401,
-            detail={
-                'Error': error_constant.UNAUTHORIZED_MESSAGE
-            }
-        )
-    
-    
-    def user_add_book(self,username, isbn_number, days=15):
-        """
-        Add book with given isbn number to a user with given username
-        """
-        book_to_add = session.query(Book).where(
-            Book.isbn_number == isbn_number).one_or_none()
-        if not book_to_add:
-            raise HTTPException(status_code=404,
-                detail= {
-                    "error":{
-                        "error_type": error_constant.REQUEST_NOT_FOUND,
-                        "error_message": error_constant.request_not_found(
-                            "book", 
-                            "ISBN number"
-                            )
-                        }
-                    })
-        
-        user_object = User.get_from_username(User,username)
-        
-        user_object.book_id += [book_to_add]
-        book_to_add.available_number -= 1
-        user_already_exsist = session.query(Record).where(
-            Record.book_id == book_to_add.isbn_number,
-            Record.member_id == user_object.id,
-            Record.returned == False
-        ).count()
-        if not user_already_exsist and book_to_add.available_number > 0:
-            book_record = Record(
-                user=user_object, book=book_to_add,
-                genre=book_to_add.genre, issued_date=datetime.utcnow().date(),
-                expected_return_date=(
-                    datetime.utcnow().date() + timedelta(days=days))
-            )
-            session.add(book_record)
-            try_session_commit(session)
-        elif book_to_add.available_number == 0:
-            raise HTTPException(status_code=409,
-                detail= {
-                    "error":{
-                        "error_type": error_constant.INSUFFICIENT_RESOURCES,
-                        "error_message": error_constant.insufficient_resources(
-                            "book"
-                            )
-                        }
-                    })
 
-        else:
-            raise HTTPException(status_code=400,
-                detail= {
-                    "error":{
-                        "error_type": error_constant.BAD_REQUEST,
-                        "error_message": error_constant.bad_request(
-                            "book",
-                            "isbn",
-                            True
-                            )
-                        }
-                    })
-    
-    
-    def user_return_book(self,username, isbn_number):
-        """
-        Return book with given isbn number from a user with given username
-        """
-        book_to_return = session.query(Book).where(
-            Book.isbn_number == isbn_number).one_or_none()
-        # Invalid ISBN ERROR
-        if not book_to_return:
-            raise HTTPException(status_code=404,
-            detail= {
-                "error":{
-                    "error_type": error_constant.REQUEST_NOT_FOUND,
-                    "error_message": error_constant.request_not_found(
-                        "book", 
-                        "ISBN number")
-                    }
-                })
-        user_object = User.get_from_username(User,username)
-        
-        # Get Unreturned books
-        got_record = session.query(Record).where(
-            Record.member_id == user_object.id,
-            Record.book_id == isbn_number,
-            Record.returned == False
-        ).one_or_none()
-        fine = 0
-        
-        if got_record:
-            books_record = got_record
-
-            # Check if the expected return date is 3 days before, if yes no fine is calculated
-            if books_record.expected_return_date.date() < datetime.utcnow().date():
-                extra_days = (datetime.utcnow().date() -
-                              books_record.expected_return_date.date()).days
-                
-                # For each days after 3 days, fine is calculated as Rs 3 per day 
-                if extra_days > 3:
-                    fine = extra_days * 3
-
-            #sucessfull return, increased the available number
-            # Also marked the book returned in Record
-            book_to_return.available_number += 1
-            books_record.returned = True
-            books_record.returned_date = datetime.utcnow().date()
-            
-            # Delete the record from association table.
-            session.query(MemberBook).filter(
-                MemberBook.book_id == isbn_number,
-                MemberBook.user_id == user_object.id
-            ).delete()
-            try_session_commit(session)
-            return fine
-        else:
-            raise HTTPException(status_code=404,
-            detail= {
-                # "error":{
-                #     "error_type": error_constant.REQUEST_NOT_FOUND,
-                #     "error_message": f"User {username} haven't borrowed {book_to_return.title}"
-                #     }
-                "error":{
-                    "error_type": error_constant.REQUEST_NOT_FOUND,
-                    "error_message": error_constant.request_not_found(
-                        "username have issued books",
-                        "ISBN number"
-                        )
-                    }
-                
-                })
-            
-                
-    def user_return_magazine(self, username, issn_number):
-        """
-        User return magazine with given issn number from a user with given username
-        
-        Returns -> fine:int or None
-        """
-        
-        magazine_to_return = session.query(Magazine).where(
-            Magazine.issn_number == issn_number).one_or_none()
-
-        if not magazine_to_return:
-            raise HTTPException(status_code=404,
-                detail= {
-                    "error":{
-                        "error_type": error_constant.REQUEST_NOT_FOUND,
-                        "error_message": error_constant.request_not_found(
-                            "magazine"
-                            ,"ISSN number"
-                            )
-                        }
-                    })
-            
-        # Check if username exsist
-        user_object = User.get_from_username(User, username)
-
-        # Check if record exsist
-        got_record = session.query(Record).where(
-            Record.member_id == user_object.id,
-            Record.magazine_id == issn_number,
-            Record.returned == False
-        ).one_or_none()
-        fine=0
-        if got_record:
-            magazine_record = got_record
-            
-            # Check if the expected returned date is expired
-            if magazine_record.expected_return_date.date() < datetime.utcnow().date():
-
-                extra_days = (magazine_record.expected_return_date.date(
-                ) - datetime.utcnow().date()).days
-
-                # if magazine is't returned after 3 days of expected date
-                # Calculate fine as Rs3 per day 
-                if extra_days > 3:
-                    fine = extra_days * 3
-                    
-            # Magazine Sucessfully returned
-            # Increase available number and marked returned
-            magazine_to_return.available_number += 1
-            magazine_record.returned = True
-            magazine_record.returned_date = datetime.utcnow().date()
-
-            # Delete the record from association table 
-            session.query(MemberMagazine).filter(
-                MemberMagazine.magazine_id == issn_number,
-                MemberMagazine.user_id == user_object.id
-            ).delete()
-            try_session_commit(session) 
-            return fine
-        else:
-            raise HTTPException(status_code=404,
-                detail= {
-                    "error":{
-                        "error_type": error_constant.REQUEST_NOT_FOUND,
-                    "error_message": error_constant.request_not_found(
-                        "username have issued magazine"
-                        ,"ISSN number"
-                        )
-                        }
-                    })
-                   
-                 
-    def user_add_magazine(self,username, issn_number, days=15):
-        """
-        Add magazine with given issn number to a user with given username
-        """
-        magazine_to_add = session.query(Magazine).where(
-            Magazine.issn_number == issn_number).one_or_none()
-        if not magazine_to_add:
-            raise HTTPException(status_code=404,
-                detail= {
-                    "error":{
-                        "error_type": error_constant.REQUEST_NOT_FOUND,
-                        "error_message": error_constant.request_not_found(
-                            "magazine",
-                            "ISSN number"
-                            )
-                        }
-                    })
-        # Check if user exsist and add the magazine to that user
-        user_object = User.get_from_username(User, username)
-        user_object.magazine_id += [magazine_to_add]
-        
-        # Check record if the magazine is already issued to same member
-        user_already_exsist = session.query(Record).where(
-            Record.magazine_id == magazine_to_add.issn_number,
-            Record.member_id == user_object.id,
-            Record.returned == False
-        ).count()
-        
-        if not user_already_exsist and magazine_to_add.available_number > 0:
-            magazine_to_add.available_number -= 1
-            magazine_record = Record(
-                user=user_object,
-                magazine=magazine_to_add,
-                genre=magazine_to_add.genre,
-                issued_date=datetime.utcnow().date(),
-                expected_return_date=(
-                    datetime.utcnow().date() + timedelta(days=days))
-            )
-            session.add(magazine_record)
-            try_session_commit(session)
-        elif magazine_to_add.available_number == 0:
-            raise HTTPException(status_code=409,
-                detail= {
-                    "error":{
-                        "error_type": error_constant.INSUFFICIENT_RESOURCES,
-                        "error_message": error_constant.insufficient_resources(
-                            "magazine"
-                            )
-                        }
-                    })
-        else:
-            raise HTTPException(status_code=400,
-                detail= {
-                    "error":{
-                        "error_type": error_constant.BAD_REQUEST,
-                        "error_message": error_constant.bad_request(
-                            "magazine",
-                            "ISSN number", 
-                            True
-                            )
-                        }
-                    })
-
-
-    def get_from_email(self,email):
-        _librarian = session.query(Librarian).where(Librarian.email==email).one_or_none()
-        if _librarian:
-            return _librarian
-        raise HTTPException(
-            status_code=404,
-            detail={
-                'error': error_constant.REQUEST_NOT_FOUND,
-                'error_message': error_constant.request_not_found('Librarian', 'details, please check with super admin.')
-            }
-        )
 
 # Table schema for Record
 class Record(Base):
@@ -754,3 +699,4 @@ class Record(Base):
     expected_return_date = Column(DateTime(), default=(
         datetime.utcnow().date() + timedelta(days=15)))
     returned = Column(Boolean, default=False)
+    

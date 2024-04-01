@@ -24,7 +24,7 @@ url = URL.create(
 engine = create_engine(url, echo=False)
 
 try:
-    engine.connect()
+    engine.connect().close()
 
 except OperationalError:
     print("No valid credentials, please ensure the presence of .env file")
