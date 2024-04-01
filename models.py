@@ -490,19 +490,6 @@ class Book(Base):
     available_number = Column(Integer, default=0)
     record = relationship('Record', backref='book')
 
-    # def get_all(self, numbers, all):
-    #     if all:
-    #         statement = Select(Book)
-    #         books = session.execute(statement).all()
-    #         return [book[0] for book in books]
-    #     if numbers:
-    #         statement = Select(Book).limit(numbers)
-    #         books = session.execute(statement)
-    #         return [book[0] for book in books]
-    #     else:
-    #         statement = Select(Book).offset(2).limit(3)
-    #         books = session.execute(statement)
-    #         return [book[0] for book in books]
 
     def get_all(self, all, page, limit):
         if all:
