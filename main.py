@@ -26,8 +26,9 @@ app = FastAPI(
     },
 )
 
+
 @app.middleware('http')
-async def log_middleware(request:Request, call_next):
+async def log_middleware(request: Request, call_next):
     log_dict = {
         'url_host': request.url.hostname,
         'url_path': request.url.path,
@@ -76,7 +77,7 @@ class BookItem(BaseModel):
 
 
 class BorrowBookObject(BaseModel):
-    username: str|None = None
+    username: str | None = None
     isbn: Annotated[StrictStr, Field(
         min_length=13,
         max_length=13,
@@ -86,7 +87,7 @@ class BorrowBookObject(BaseModel):
 
 
 class ReturnBookObject(BaseModel):
-    username: str|None = None
+    username: str | None = None
     isbn: Annotated[StrictStr, Field(
         min_length=13,
         max_length=13,
@@ -95,7 +96,7 @@ class ReturnBookObject(BaseModel):
 
 
 class BorrowMagazineObject(BaseModel):
-    username: str|None=None
+    username: str | None = None
     issn: Annotated[StrictStr, Field(
         min_length=8,
         max_length=8,
@@ -105,7 +106,7 @@ class BorrowMagazineObject(BaseModel):
 
 
 class ReturnMagazineObject(BaseModel):
-    username: str|None=None
+    username: str | None = None
     issn: Annotated[StrictStr, Field(
         min_length=8,
         max_length=8,
@@ -152,13 +153,13 @@ class PublisherItem(BaseModel):
 class LoginScheme(BaseModel):
     email: EmailStr = Field(default=None)
     password: str = Field(default=None)
-    
+
     model_config = {
-        "json_schema_extra" : {
-            'examples':[
+        "json_schema_extra": {
+            'examples': [
                 {
-                  "email": "admin@lms.com",
-                  "password": "admin",
+                    "email": "admin@lms.com",
+                    "password": "admin",
                 }
             ]
         },
@@ -173,20 +174,22 @@ class UserItem(BaseModel):
     username: str
     email: str
     address: str
-    password:str
+    password: str
     phone_number: Annotated[int, Field(ge=1111111111, le=9999999999)]
 
-def token_in_header(Authorization:str = Header()):
-    token_splitted = Authorization.split(" ",1)
-    if token_splitted[0].lower() =='bearer':
+
+def token_in_header(Authorization: str = Header()):
+    token_splitted = Authorization.split(" ", 1)
+    if token_splitted[0].lower() == 'bearer':
         return auth.decodAccessJWT(token_splitted[1])
     else:
         raise HTTPException(
             status_code=401,
-            detail= "Invalid token Scheme"
+            detail="Invalid token Scheme"
         )
-    
-def admin_only(payload =Depends(token_in_header)):
+
+
+def admin_only(payload=Depends(token_in_header)):
     if payload['role'] == 1:
         print("Hello")
         return 'Hello'
@@ -218,9 +221,9 @@ FastAPI Please find all the available path below',
 
 @app.get('/publisher', tags=['Publisher'])
 async def list_publishers(
-    page:int|None=1, 
-    all:bool|None=None, 
-    limit:int|None=3
+    page: int | None = 1,
+    all: bool | None = None,
+    limit: int | None = 3
 ):
     return {
         'Publishers': publisher.get_all(page=page, all=all, limit=limit)
@@ -239,8 +242,8 @@ async def get_publisher(publisherId: int):
         detail={
             'Error': {
                 'error_type': error_constant.REQUEST_NOT_FOUND,
-                'error_message': error_constant.request_not_found("publisher","ID"),
-                }
+                'error_message': error_constant.request_not_found("publisher", "ID"),
+            }
         }
     )
 
@@ -263,9 +266,9 @@ async def add_publisher(publisherItem: PublisherItem):
 
 @app.get('/genre', tags=['Genre'])
 async def list_genre(
-    page:int|None=1, 
-    all:bool|None=None, 
-    limit:int|None=3
+    page: int | None = 1,
+    all: bool | None = None,
+    limit: int | None = 3
 ):
     return {
         'Genre': genre.get_all(page=page, all=all, limit=limit)
@@ -284,7 +287,7 @@ async def get_genre(genreId: int):
         detail={
             'Error': {
                 'error_type': error_constant.REQUEST_NOT_FOUND,
-                'error_message': error_constant.request_not_found("genre","id"),
+                'error_message': error_constant.request_not_found("genre", "id"),
             }
         }
     )
@@ -301,14 +304,14 @@ async def add_genre(genreItem: GenreItem):
 
 @app.get('/book', tags=['Book'])
 async def list_books(
-    page:int|None=1, 
-    all:bool|None=None, 
-    limit:int|None=3
-    ):
+    page: int | None = 1,
+    all: bool | None = None,
+    limit: int | None = 3
+):
     return {
-        'Books': book.get_all(page=page,limit=limit,all=all)
+        'Books': book.get_all(page=page, limit=limit, all=all)
     }
-    
+
 # @app.get('/book', tags=['Book'])
 # async def list_books(numbers:int|None=None,all:bool|None=None):
 #     return {
@@ -334,13 +337,13 @@ async def add_book(book_item: BookItem):
             status_code=404,
             detail={'error': {
                 'error_type': error_constant.REQUEST_NOT_FOUND,
-                'error_message': error_constant.request_not_found("publisher","ID"),
+                'error_message': error_constant.request_not_found("publisher", "ID"),
             }})
     raise HTTPException(
         status_code=404,
         detail={'error': {
                 'error_type': error_constant.REQUEST_NOT_FOUND,
-                'error_message': error_constant.request_not_found("genre","ID"),
+                'error_message': error_constant.request_not_found("genre", "ID"),
                 }})
 
 
@@ -351,7 +354,7 @@ async def get_book(isbn: str):
             status_code=400,
             detail={'error': {
                 'error_type': error_constant.INVALID_REQUEST,
-                'error_message': error_constant.invalid_length("ISBN number",13)
+                'error_message': error_constant.invalid_length("ISBN number", 13)
             }})
 
     bookFound = book.get_from_id(isbn)
@@ -363,15 +366,15 @@ async def get_book(isbn: str):
         status_code=404,
         detail={'error': {
                 'error_type': error_constant.REQUEST_NOT_FOUND,
-                'error_message': error_constant.request_not_found("book","ISBN number")
+                'error_message': error_constant.request_not_found("book", "ISBN number")
                 }})
 
 
 @app.get('/magazine', tags=['Magazine'])
 async def list_magazines(
-    page:int|None=1, 
-    all:bool|None=None, 
-    limit:int|None=3
+    page: int | None = 1,
+    all: bool | None = None,
+    limit: int | None = 3
 ):
     return {
         'Magazines': magazine.get_all(page, all, limit)
@@ -396,13 +399,13 @@ async def add_magazine(magazine_item: MagazineItem):
             status_code=404,
             detail={'error': {
                 'error_type':    error_constant.REQUEST_NOT_FOUND,
-                'error_message': error_constant.request_not_found("publisher","id")
+                'error_message': error_constant.request_not_found("publisher", "id")
             }})
     raise HTTPException(
         status_code=404,
         detail={'error': {
                 'error_type':    error_constant.REQUEST_NOT_FOUND,
-                'error_message': error_constant.request_not_found("genre","id")
+                'error_message': error_constant.request_not_found("genre", "id")
                 }})
 
 
@@ -425,15 +428,15 @@ async def get_magazine(issn: str):
         status_code=404,
         detail={'error': {
                 'error_type':    error_constant.REQUEST_NOT_FOUND,
-                'error_message': error_constant.request_not_found("Magazine","ISSN number")
+                'error_message': error_constant.request_not_found("Magazine", "ISSN number")
                 }})
 
 
 @app.get('/user', dependencies=[Depends(admin_only)], tags=['User'])
 async def list_users(
-    page:int|None=1, 
-    all:bool|None=None, 
-    limit:int|None=3
+    page: int | None = 1,
+    all: bool | None = None,
+    limit: int | None = 3
 ):
     return {
         'Users': user.get_all_user(page=page, all=all, limit=limit)
@@ -450,8 +453,8 @@ async def borrowed_items(username: str):
 
 
 @app.post('/user/borrow_book', tags=['User'])
-async def user_borrow_book(borrowObject: BorrowBookObject, token = Depends(token_in_header)):
-    if token['role']!= 'user':
+async def user_borrow_book(borrowObject: BorrowBookObject, token=Depends(token_in_header)):
+    if token['role'] != 'user':
         if borrowObject.username:
             user.borrow_book(borrowObject.username, borrowObject.isbn)
         else:
@@ -459,13 +462,13 @@ async def user_borrow_book(borrowObject: BorrowBookObject, token = Depends(token
                 status_code=400,
                 detail={
                     'error': error_constant.BAD_REQUEST,
-                    'error_message': "No Username in provided, admins must provide username to whom the book should be issued to " 
+                    'error_message': "No Username in provided, admins must provide username to whom the book should be issued to "
                 }
             )
     else:
         username = user.get_username_from_email(token['user_id'])
         user.borrow_book(username, borrowObject.isbn)
-        
+
     return {
         "Sucess": "Book Borrowed Sucessfully"
     }
@@ -473,7 +476,7 @@ async def user_borrow_book(borrowObject: BorrowBookObject, token = Depends(token
 
 @app.post('/user/borrow_magazine', tags=['User'])
 async def user_borrow_magazine(borrowObject: BorrowMagazineObject, token=Depends(token_in_header)):
-    if token['role']!= 'user':
+    if token['role'] != 'user':
         if borrowObject.username:
             user.borrow_magazine(borrowObject.username, borrowObject.issn)
         else:
@@ -481,7 +484,7 @@ async def user_borrow_magazine(borrowObject: BorrowMagazineObject, token=Depends
                 status_code=400,
                 detail={
                     'error': error_constant.BAD_REQUEST,
-                    'error_message': "No Username in provided, admins must provide username to whom the magazine should be issued to " 
+                    'error_message': "No Username in provided, admins must provide username to whom the magazine should be issued to "
                 }
             )
     else:
@@ -493,24 +496,24 @@ async def user_borrow_magazine(borrowObject: BorrowMagazineObject, token=Depends
 
 
 @app.post('/user/return_magazine', tags=['User'])
-async def user_return_magazine(returnObject: ReturnMagazineObject, token = Depends(token_in_header)):
-    if token['role']!= 'user':
+async def user_return_magazine(returnObject: ReturnMagazineObject, token=Depends(token_in_header)):
+    if token['role'] != 'user':
         if returnObject.username:
             fine = user.return_magazine(
                 returnObject.username, returnObject.issn)
             if fine:
                 return {"Sucess": "Sucesfully returned, but fine remaning",
-                    "Fine Remaning": {
-                        "Fine Ammount": fine,
-                        "Message": f"{returnObject.username} have {fine} rs remaning"
-                    }
-                }
+                        "Fine Remaning": {
+                            "Fine Ammount": fine,
+                            "Message": f"{returnObject.username} have {fine} rs remaning"
+                        }
+                        }
         else:
             raise HTTPException(
                 status_code=400,
                 detail={
                     'error': error_constant.BAD_REQUEST,
-                    'error_message': "No Username in provided, admins must provide username of user returning magazine" 
+                    'error_message': "No Username in provided, admins must provide username of user returning magazine"
                 }
             )
     else:
@@ -518,18 +521,18 @@ async def user_return_magazine(returnObject: ReturnMagazineObject, token = Depen
         fine = user.return_magazine(username, returnObject.issn)
         if fine:
             return {"Sucess": "Sucesfully returned, but fine remaning",
-                "Fine Remaning": {
-                    "Fine Ammount": fine,
-                    "Message": f"{returnObject.username} have {fine} rs remaning"
-                }
-            }
-        
-    return {"sucess":"Magazine Returned Sucessfully"}
+                    "Fine Remaning": {
+                        "Fine Ammount": fine,
+                        "Message": f"{returnObject.username} have {fine} rs remaning"
+                    }
+                    }
+
+    return {"sucess": "Magazine Returned Sucessfully"}
 
 
 @app.post('/user/return_book', tags=['User'])
-async def user_return_book(returnObject: ReturnBookObject, token = Depends(token_in_header)):
-    if token['role']!= 'user':
+async def user_return_book(returnObject: ReturnBookObject, token=Depends(token_in_header)):
+    if token['role'] != 'user':
         if returnObject.username:
             fine = user.return_book(returnObject.username, returnObject.isbn)
             if fine:
@@ -545,7 +548,7 @@ async def user_return_book(returnObject: ReturnBookObject, token = Depends(token
                 status_code=400,
                 detail={
                     'error': error_constant.BAD_REQUEST,
-                    'error_message': "No Username in provided, admins must provide username of user returning book" 
+                    'error_message': "No Username in provided, admins must provide username of user returning book"
                 }
             )
     else:
@@ -559,17 +562,15 @@ async def user_return_book(returnObject: ReturnBookObject, token = Depends(token
                     "Message": f"{returnObject.username} have {fine} rs remaning"
                 }
             }
-    return {"Sucess":"Book Returned Sucessfully"}
+    return {"Sucess": "Book Returned Sucessfully"}
 
 
 @app.get('/me')
-async def get_my_info(token = Depends(token_in_header)):
+async def get_my_info(token=Depends(token_in_header)):
     username = user.get_username_from_email(token['user_id'])
     user_details = user.get_from_username(username)
-    # user_details.__dict__.pop('password')
-    # print(response.__dict__)
-    return{
-        'User':{
+    return {
+        'User': {
             'user_details': user_details
         }
     }
@@ -591,7 +592,7 @@ async def get_user(username: str):
         detail={
             'Error': {
                 'error_type':    error_constant.REQUEST_NOT_FOUND,
-                'error_message': error_constant.request_not_found("user",'usernaem')
+                'error_message': error_constant.request_not_found("user", 'usernaem')
             }
         }
     )
@@ -618,35 +619,21 @@ async def list_librarians():
 @app.post('/login', tags=['Librarian'])
 async def login(login_schema: LoginScheme):
     valid_user = user.validate_user(login_schema.email, login_schema.password)
-    # valid = librarian.validate_librarian(
-    #     login_schema.email, login_schema.password)
-    # if valid:
-        # token = encodeAccessJWT(login_schema.email)
-    token = auth.generate_JWT(login_schema.email,role=valid_user.role.name)
-    # token.update({'email': login_schema.email})
+    token = auth.generate_JWT(login_schema.email, role=valid_user.role.name)
     return {
-        'access_token':token[0],
+        'access_token': token[0],
         'refresh_token': token[1],
         'role': valid_user.role.name
-        }
-    # else:
-    #     raise HTTPException(
-    #         status_code=401,
-    #         detail={
-    #             'Error': {
-    #                 'error_type': error_constant.UNAUTHORIZED,
-    #                 'error_message': error_constant.UNAUTHORIZED_MESSAGE
-    #             }
-    #         }
-    #     )
+    }
+
 
 @app.get('/refresh', tags=['Librarian'])
 async def get_new_accessToken(refreshToken: str):
     token = auth.decodRefreshJWT(refreshToken)
     if token:
         return {
-            'access_token':token
-            }
+            'access_token': token
+        }
     raise HTTPException(
         status_code=401,
         detail={

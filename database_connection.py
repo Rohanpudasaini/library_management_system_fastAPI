@@ -1,11 +1,11 @@
 from fastapi import HTTPException
 from sqlalchemy import create_engine, URL
 from sqlalchemy.orm import Session
-from sqlalchemy.exc import  IntegrityError, OperationalError
+from sqlalchemy.exc import IntegrityError, OperationalError
 from decouple import config
-import error_constant 
+import error_constant
 
-#Load info from .env
+# Load info from .env
 host = config('host')
 database = config('database')
 user = config('user')
@@ -33,7 +33,9 @@ except OperationalError:
 session = Session(bind=engine)
 
 #  Get session and try to commit
-# If error occurs, rollback and show generic HTTPException 
+# If error occurs, rollback and show generic HTTPException
+
+
 def try_session_commit(session):
     try:
         session.commit()
@@ -41,9 +43,9 @@ def try_session_commit(session):
         print(e._message())
         session.rollback()
         raise HTTPException(status_code=500,
-                detail= {
-                    "error":{
-                        "error_type": error_constant.INTERNAL_ERROR,
-                        "error_message": error_constant.INTERNAL_ERROR_MESSAGE
-                        }
-                    })
+                            detail={
+                                "error": {
+                                    "error_type": error_constant.INTERNAL_ERROR,
+                                    "error_message": error_constant.INTERNAL_ERROR_MESSAGE
+                                }
+                            })
