@@ -93,7 +93,7 @@ This is a simple library management system's api created using FastAPI for the e
 
 - [ ] Add option to update or remove members and books or magazines.
 - [ ]  Testing
-- [ ] User login (Maybe)
+- [X] ~~User login (Maybe)~~
   
 ## Conclusion
 
