@@ -12,7 +12,7 @@ formater = logging.Formatter(
 )
 
 stream_handler = logging.StreamHandler(sys.stdout)
-file_handler = logging.FileHandler('app.log')
+file_handler = logging.FileHandler('log/app.log')
 online_handler = LogtailHandler(source_token=token)
 
 stream_handler.setFormatter(formater)

@@ -1,5 +1,5 @@
 from auth import auth
-from logger import logger
+from utils.logger import logger
 import json
 from fastapi import HTTPException, Header, Response
 

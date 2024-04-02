@@ -3,7 +3,7 @@ from fastapi import HTTPException
 from jose import jwt, JWTError
 from passlib.context import CryptContext
 from decouple import config
-import error_constant 
+import utils.constant_messages as constant_messages 
 import bcrypt
 
 
@@ -66,7 +66,7 @@ def decodRefreshJWT(token:str):
     except JWTError:
         raise HTTPException(
                     status_code=401,
-                    detail=error_constant.TOKEN_VERIFICATION_FAILED
+                    detail=constant_messages.TOKEN_VERIFICATION_FAILED
                 ) 
 
 

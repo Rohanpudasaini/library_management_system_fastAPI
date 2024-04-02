@@ -3,7 +3,7 @@ from sqlalchemy import create_engine, URL
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import IntegrityError, OperationalError
 from decouple import config
-import error_constant
+import utils.constant_messages as constant_messages
 
 # Load info from .env
 host = config('host')
@@ -21,7 +21,7 @@ url = URL.create(
 )
 
 # create a engine with above created url
-engine = create_engine(url, echo=False)
+engine = create_engine(url, echo=True)
 
 try:
     engine.connect().close()
@@ -45,7 +45,7 @@ def try_session_commit(session):
         raise HTTPException(status_code=500,
                             detail={
                                 "error": {
-                                    "error_type": error_constant.INTERNAL_ERROR,
-                                    "error_message": error_constant.INTERNAL_ERROR_MESSAGE
+                                    "error_type": constant_messages.INTERNAL_ERROR,
+                                    "error_message": constant_messages.INTERNAL_ERROR_MESSAGE
                                 }
                             })

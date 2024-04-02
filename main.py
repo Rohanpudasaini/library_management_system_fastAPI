@@ -2,11 +2,11 @@ from fastapi import FastAPI, HTTPException, Depends, Request
 from sqlalchemy import Select
 from auth import auth
 from auth.PermissionChecker import PermissionChecker, ContainPermission
-import error_constant
+import utils.constant_messages as constant_messages
 from models import Book, Magazine, User, Publisher, Genre, Role
-from schema import *
-from functions import log_request, log_response, token_in_header
-from database_connection import session
+from utils.schema import *
+from utils.helper_function import log_request, log_response, token_in_header
+from database.database_connection import session
 
 
 description = """
@@ -109,8 +109,8 @@ async def get_publisher(publisherId: int):
         status_code=404,
         detail={
             'Error': {
-                'error_type': error_constant.REQUEST_NOT_FOUND,
-                'error_message': error_constant.request_not_found("publisher", "ID"),
+                'error_type': constant_messages.REQUEST_NOT_FOUND,
+                'error_message': constant_messages.request_not_found("publisher", "ID"),
             }
         }
     )
@@ -154,8 +154,8 @@ async def get_genre(genreId: int):
         status_code=404,
         detail={
             'Error': {
-                'error_type': error_constant.REQUEST_NOT_FOUND,
-                'error_message': error_constant.request_not_found("genre", "id"),
+                'error_type': constant_messages.REQUEST_NOT_FOUND,
+                'error_message': constant_messages.request_not_found("genre", "id"),
             }
         }
     )
@@ -198,14 +198,14 @@ async def add_book(book_item: BookItem):
         raise HTTPException(
             status_code=404,
             detail={'error': {
-                'error_type': error_constant.REQUEST_NOT_FOUND,
-                'error_message': error_constant.request_not_found("publisher", "ID"),
+                'error_type': constant_messages.REQUEST_NOT_FOUND,
+                'error_message': constant_messages.request_not_found("publisher", "ID"),
             }})
     raise HTTPException(
         status_code=404,
         detail={'error': {
-                'error_type': error_constant.REQUEST_NOT_FOUND,
-                'error_message': error_constant.request_not_found("genre", "ID"),
+                'error_type': constant_messages.REQUEST_NOT_FOUND,
+                'error_message': constant_messages.request_not_found("genre", "ID"),
                 }})
 
 
@@ -215,8 +215,8 @@ async def get_book(isbn: str):
         raise HTTPException(
             status_code=400,
             detail={'error': {
-                'error_type': error_constant.INVALID_REQUEST,
-                'error_message': error_constant.invalid_length("ISBN number", 13)
+                'error_type': constant_messages.INVALID_REQUEST,
+                'error_message': constant_messages.invalid_length("ISBN number", 13)
             }})
 
     bookFound = book.get_from_id(isbn)
@@ -227,8 +227,8 @@ async def get_book(isbn: str):
     raise HTTPException(
         status_code=404,
         detail={'error': {
-                'error_type': error_constant.REQUEST_NOT_FOUND,
-                'error_message': error_constant.request_not_found("book", "ISBN number")
+                'error_type': constant_messages.REQUEST_NOT_FOUND,
+                'error_message': constant_messages.request_not_found("book", "ISBN number")
                 }})
 
 
@@ -260,14 +260,14 @@ async def add_magazine(magazine_item: MagazineItem):
         raise HTTPException(
             status_code=404,
             detail={'error': {
-                'error_type':    error_constant.REQUEST_NOT_FOUND,
-                'error_message': error_constant.request_not_found("publisher", "id")
+                'error_type':    constant_messages.REQUEST_NOT_FOUND,
+                'error_message': constant_messages.request_not_found("publisher", "id")
             }})
     raise HTTPException(
         status_code=404,
         detail={'error': {
-                'error_type':    error_constant.REQUEST_NOT_FOUND,
-                'error_message': error_constant.request_not_found("genre", "id")
+                'error_type':    constant_messages.REQUEST_NOT_FOUND,
+                'error_message': constant_messages.request_not_found("genre", "id")
                 }})
 
 
@@ -277,8 +277,8 @@ async def get_magazine(issn: str):
         raise HTTPException(
             status_code=400,
             detail={'error': {
-                'error_type': error_constant.INVALID_REQUEST,
-                'error_message': error_constant.invalid_length("ISSN number", 8)
+                'error_type': constant_messages.INVALID_REQUEST,
+                'error_message': constant_messages.invalid_length("ISSN number", 8)
             }})
 
     magazineFound = magazine.get_from_id(issn)
@@ -289,8 +289,8 @@ async def get_magazine(issn: str):
     raise HTTPException(
         status_code=404,
         detail={'error': {
-                'error_type':    error_constant.REQUEST_NOT_FOUND,
-                'error_message': error_constant.request_not_found("Magazine", "ISSN number")
+                'error_type':    constant_messages.REQUEST_NOT_FOUND,
+                'error_message': constant_messages.request_not_found("Magazine", "ISSN number")
                 }})
 
 
@@ -323,7 +323,7 @@ async def borrow_book(borrowObject: BorrowBookObject, token=Depends(token_in_hea
             raise HTTPException(
                 status_code=400,
                 detail={
-                    'error': error_constant.BAD_REQUEST,
+                    'error': constant_messages.BAD_REQUEST,
                     'error_message': "No Username in provided, admins must provide username to whom the book should be issued to "
                 }
             )
@@ -345,7 +345,7 @@ async def borrow_magazine(borrowObject: BorrowMagazineObject, token=Depends(toke
             raise HTTPException(
                 status_code=400,
                 detail={
-                    'error': error_constant.BAD_REQUEST,
+                    'error': constant_messages.BAD_REQUEST,
                     'error_message': "No Username in provided, admins must provide username to whom the magazine should be issued to "
                 }
             )
@@ -374,7 +374,7 @@ async def return_magazine(returnObject: ReturnMagazineObject, token=Depends(toke
             raise HTTPException(
                 status_code=400,
                 detail={
-                    'error': error_constant.BAD_REQUEST,
+                    'error': constant_messages.BAD_REQUEST,
                     'error_message': "No Username in provided, admins must provide username of user returning magazine"
                 }
             )
@@ -409,7 +409,7 @@ async def return_book(returnObject: ReturnBookObject, token=Depends(token_in_hea
             raise HTTPException(
                 status_code=400,
                 detail={
-                    'error': error_constant.BAD_REQUEST,
+                    'error': constant_messages.BAD_REQUEST,
                     'error_message': "No Username in provided, admins must provide username of user returning book"
                 }
             )
@@ -452,8 +452,8 @@ async def get_user(username: str):
         status_code=404,
         detail={
             'Error': {
-                'error_type':    error_constant.REQUEST_NOT_FOUND,
-                'error_message': error_constant.request_not_found("user", 'usernaem')
+                'error_type':    constant_messages.REQUEST_NOT_FOUND,
+                'error_message': constant_messages.request_not_found("user", 'usernaem')
             }
         }
     )
@@ -514,8 +514,8 @@ async def get_new_accessToken(refreshToken: str):
         status_code=401,
         detail={
             'Error': {
-                'error_type': error_constant.TOKEN_ERROR,
-                'error_message': error_constant.TOKEN_VERIFICATION_FAILED
+                'error_type': constant_messages.TOKEN_ERROR,
+                'error_message': constant_messages.TOKEN_VERIFICATION_FAILED
             }
         }
     )

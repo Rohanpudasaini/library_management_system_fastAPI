@@ -2,9 +2,9 @@ from sqlalchemy.orm import DeclarativeBase, relationship, mapped_column
 from sqlalchemy import ARRAY, Column, Select, String, DateTime, BigInteger, Integer, ForeignKey, Boolean
 from sqlalchemy.exc import IntegrityError
 from datetime import datetime, timedelta
-from database_connection import session, try_session_commit
+from database.database_connection import session, try_session_commit
 from fastapi import HTTPException
-import error_constant
+import utils.constant_messages as constant_messages
 from auth.auth import verify_password
 
 
@@ -112,8 +112,8 @@ class User(Base):
             raise HTTPException(status_code=404,
                                 detail={
                                     "error": {
-                                        "error_type": error_constant.REQUEST_NOT_FOUND,
-                                        "error_message": error_constant.request_not_found("user", "username")
+                                        "error_type": constant_messages.REQUEST_NOT_FOUND,
+                                        "error_message": constant_messages.request_not_found("user", "username")
                                     }
                                 })
         return user_object
@@ -128,8 +128,8 @@ class User(Base):
             raise HTTPException(status_code=404,
                                 detail={
                                     "error": {
-                                        "error_type": error_constant.REQUEST_NOT_FOUND,
-                                        "error_message": error_constant.request_not_found("user", "username")
+                                        "error_type": constant_messages.REQUEST_NOT_FOUND,
+                                        "error_message": constant_messages.request_not_found("user", "username")
                                     }
                                 })
         return user_object.username
@@ -149,7 +149,7 @@ class User(Base):
         raise HTTPException(
             status_code=401,
             detail={
-                'Error': error_constant.UNAUTHORIZED_MESSAGE
+                'Error': constant_messages.UNAUTHORIZED_MESSAGE
             }
         )
 
@@ -180,8 +180,8 @@ class User(Base):
             raise HTTPException(status_code=400,
                                 detail={
                                     "error": {
-                                        "error_type": error_constant.BAD_REQUEST,
-                                        "error_message": error_constant.bad_request("User", "username or email")
+                                        "error_type": constant_messages.BAD_REQUEST,
+                                        "error_message": constant_messages.bad_request("User", "username or email")
                                     }
                                 })
 
@@ -195,8 +195,8 @@ class User(Base):
             raise HTTPException(status_code=404,
                                 detail={
                                     "error": {
-                                        "error_type": error_constant.REQUEST_NOT_FOUND,
-                                        "error_message": error_constant.request_not_found(
+                                        "error_type": constant_messages.REQUEST_NOT_FOUND,
+                                        "error_message": constant_messages.request_not_found(
                                             "book",
                                             "ISBN number"
                                         )
@@ -225,8 +225,8 @@ class User(Base):
             raise HTTPException(status_code=409,
                                 detail={
                                     "error": {
-                                        "error_type": error_constant.INSUFFICIENT_RESOURCES,
-                                        "error_message": error_constant.insufficient_resources(
+                                        "error_type": constant_messages.INSUFFICIENT_RESOURCES,
+                                        "error_message": constant_messages.insufficient_resources(
                                             "book"
                                         )
                                     }
@@ -236,8 +236,8 @@ class User(Base):
             raise HTTPException(status_code=400,
                                 detail={
                                     "error": {
-                                        "error_type": error_constant.BAD_REQUEST,
-                                        "error_message": error_constant.bad_request(
+                                        "error_type": constant_messages.BAD_REQUEST,
+                                        "error_message": constant_messages.bad_request(
                                             "book",
                                             "isbn",
                                             True
@@ -256,8 +256,8 @@ class User(Base):
             raise HTTPException(status_code=404,
                                 detail={
                                     "error": {
-                                        "error_type": error_constant.REQUEST_NOT_FOUND,
-                                        "error_message": error_constant.request_not_found(
+                                        "error_type": constant_messages.REQUEST_NOT_FOUND,
+                                        "error_message": constant_messages.request_not_found(
                                             "book",
                                             "ISBN number")
                                     }
@@ -301,8 +301,8 @@ class User(Base):
             raise HTTPException(status_code=404,
                                 detail={
                                     "error": {
-                                        "error_type": error_constant.REQUEST_NOT_FOUND,
-                                        "error_message": error_constant.request_not_found(
+                                        "error_type": constant_messages.REQUEST_NOT_FOUND,
+                                        "error_message": constant_messages.request_not_found(
                                             "username have issued books",
                                             "ISBN number"
                                         )
@@ -324,8 +324,8 @@ class User(Base):
             raise HTTPException(status_code=404,
                                 detail={
                                     "error": {
-                                        "error_type": error_constant.REQUEST_NOT_FOUND,
-                                        "error_message": error_constant.request_not_found(
+                                        "error_type": constant_messages.REQUEST_NOT_FOUND,
+                                        "error_message": constant_messages.request_not_found(
                                             "magazine", "ISSN number"
                                         )
                                     }
@@ -372,8 +372,8 @@ class User(Base):
             raise HTTPException(status_code=404,
                                 detail={
                                     "error": {
-                                        "error_type": error_constant.REQUEST_NOT_FOUND,
-                                        "error_message": error_constant.request_not_found(
+                                        "error_type": constant_messages.REQUEST_NOT_FOUND,
+                                        "error_message": constant_messages.request_not_found(
                                             "username have issued magazine", "ISSN number"
                                         )
                                     }
@@ -389,8 +389,8 @@ class User(Base):
             raise HTTPException(status_code=404,
                                 detail={
                                     "error": {
-                                        "error_type": error_constant.REQUEST_NOT_FOUND,
-                                        "error_message": error_constant.request_not_found(
+                                        "error_type": constant_messages.REQUEST_NOT_FOUND,
+                                        "error_message": constant_messages.request_not_found(
                                             "magazine",
                                             "ISSN number"
                                         )
@@ -423,8 +423,8 @@ class User(Base):
             raise HTTPException(status_code=409,
                                 detail={
                                     "error": {
-                                        "error_type": error_constant.INSUFFICIENT_RESOURCES,
-                                        "error_message": error_constant.insufficient_resources(
+                                        "error_type": constant_messages.INSUFFICIENT_RESOURCES,
+                                        "error_message": constant_messages.insufficient_resources(
                                             "magazine"
                                         )
                                     }
@@ -433,8 +433,8 @@ class User(Base):
             raise HTTPException(status_code=400,
                                 detail={
                                     "error": {
-                                        "error_type": error_constant.BAD_REQUEST,
-                                        "error_message": error_constant.bad_request(
+                                        "error_type": constant_messages.BAD_REQUEST,
+                                        "error_message": constant_messages.bad_request(
                                             "magazine",
                                             "ISSN number",
                                             True
@@ -483,8 +483,8 @@ class Publisher(Base):
             raise HTTPException(status_code=400,
                                 detail={
                                     "error": {
-                                        "error_type": error_constant.BAD_REQUEST,
-                                        "error_message": error_constant.bad_request("Publisher", "publisher name")
+                                        "error_type": constant_messages.BAD_REQUEST,
+                                        "error_message": constant_messages.bad_request("Publisher", "publisher name")
                                     }
                                 })
 
@@ -519,8 +519,8 @@ class Book(Base):
         raise HTTPException(status_code=204,
                             detail={
                                 "error": {
-                                    "error_type": error_constant.NO_CONTENT,
-                                    "error_message": error_constant.NO_CONTENT_MESSAGE
+                                    "error_type": constant_messages.NO_CONTENT,
+                                    "error_message": constant_messages.NO_CONTENT_MESSAGE
                                 }
                             })
 
@@ -552,8 +552,8 @@ class Book(Base):
             raise HTTPException(status_code=400,
                                 detail={
                                     "error": {
-                                        "error_type": error_constant.BAD_REQUEST,
-                                        "error_message": error_constant.bad_request("book", "ISBN number")
+                                        "error_type": constant_messages.BAD_REQUEST,
+                                        "error_message": constant_messages.bad_request("book", "ISBN number")
                                     }
                                 })
 
@@ -586,8 +586,8 @@ class Magazine(Base):
         raise HTTPException(status_code=204,
                             detail={
                                 "error": {
-                                    "error_type":    error_constant.NO_CONTENT,
-                                    "error_message": error_constant.NO_CONTENT_MESSAGE,
+                                    "error_type":    constant_messages.NO_CONTENT,
+                                    "error_message": constant_messages.NO_CONTENT_MESSAGE,
                                 }
                             })
 
@@ -619,8 +619,8 @@ class Magazine(Base):
             raise HTTPException(status_code=400,
                                 detail={
                                     "error": {
-                                        "error_type": error_constant.BAD_REQUEST,
-                                        "error_message": error_constant.bad_request("Magazine", "ISSN number")
+                                        "error_type": constant_messages.BAD_REQUEST,
+                                        "error_message": constant_messages.bad_request("Magazine", "ISSN number")
                                     }
                                 })
 
@@ -663,8 +663,8 @@ class Genre(Base):
             raise HTTPException(status_code=400,
                                 detail={
                                     "error": {
-                                        "error_type": error_constant.BAD_REQUEST,
-                                        "error_message": error_constant.bad_request("Genre", "name")
+                                        "error_type": constant_messages.BAD_REQUEST,
+                                        "error_message": constant_messages.bad_request("Genre", "name")
                                     }
                                 })
 
