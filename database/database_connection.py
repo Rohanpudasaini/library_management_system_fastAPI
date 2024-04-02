@@ -21,7 +21,7 @@ url = URL.create(
 )
 
 # create a engine with above created url
-engine = create_engine(url, echo=True)
+engine = create_engine(url, echo=False)
 
 try:
     engine.connect().close()

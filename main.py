@@ -51,7 +51,7 @@ role = Role()
 
 
 def is_verified(token:dict = Depends(token_in_header)):
-    email = token['user_id']
+    email = token['user_identifier']
     username = user.get_username_from_email(email)
     user_object = user.get_from_username(username)
     if 'user:verified' in user_object.roles.permission:
@@ -333,7 +333,7 @@ async def borrow_book(borrowObject: BorrowBookObject, token=Depends(token_in_hea
                 }
             )
     else:
-        username = user.get_username_from_email(token['user_id'])
+        username = user.get_username_from_email(token['user_identifier'])
         user.borrow_book(username, borrowObject.isbn)
 
     return {
@@ -355,7 +355,7 @@ async def borrow_magazine(borrowObject: BorrowMagazineObject, token=Depends(toke
                 }
             )
     else:
-        username = user.get_username_from_email(token['user_id'])
+        username = user.get_username_from_email(token['user_identifier'])
         user.borrow_magazine(username, borrowObject.issn)
     return {
         "Sucess": "Magazine Borrowed Sucessfully"
@@ -384,7 +384,7 @@ async def return_magazine(returnObject: ReturnMagazineObject, token=Depends(toke
                 }
             )
     else:
-        username = user.get_username_from_email(token['user_id'])
+        username = user.get_username_from_email(token['user_identifier'])
         fine = user.return_magazine(username, returnObject.issn)
         if fine:
             return {"Sucess": "Sucesfully returned, but fine remaning",
@@ -419,7 +419,7 @@ async def return_book(returnObject: ReturnBookObject, token=Depends(token_in_hea
                 }
             )
     else:
-        username = user.get_username_from_email(token['user_id'])
+        username = user.get_username_from_email(token['user_identifier'])
         fine = user.return_book(username, returnObject.isbn)
         if fine:
             return {
@@ -432,9 +432,9 @@ async def return_book(returnObject: ReturnBookObject, token=Depends(token_in_hea
     return {"Sucess": "Book Returned Sucessfully"}
 
 
-@app.get('/me')
+@app.get('/me', tags=['User'])
 async def get_my_info(token=Depends(token_in_header)):
-    username = user.get_username_from_email(token['user_id'])
+    username = user.get_username_from_email(token['user_identifier'])
     user_details = user.get_from_username(username)
     return {
         'User': {
@@ -490,14 +490,14 @@ async def add_user(userItem: UserItem, isAdmin:bool = Depends(ContainPermission(
             detail="Only admin can add user with different role_id")
 
 
-@app.get('/librarian', tags=['Librarian'], dependencies=[Depends(admin_only)])
-async def list_librarians():
+@app.get('/admin', tags=['User'], dependencies=[Depends(admin_only)])
+async def list_admin():
     return {
         'Users': user.get_all_librarian()
     }
 
 
-@app.post('/login', tags=['Librarian'])
+@app.post('/login', tags=['Authentication'])
 async def login(login_schema: LoginScheme):
     valid_user = user.validate_user(login_schema.email, login_schema.password)
     token = auth.generate_JWT(login_schema.email, role=valid_user.role_id)
@@ -508,7 +508,7 @@ async def login(login_schema: LoginScheme):
     }
 
 
-@app.post('/refresh', tags=['Librarian'])
+@app.post('/refresh', tags=['Authentication'])
 async def get_new_accessToken(refreshToken:RefreshTokenModel):
     token = auth.decodRefreshJWT(refreshToken.token)
     if token:
@@ -526,10 +526,10 @@ async def get_new_accessToken(refreshToken:RefreshTokenModel):
     )
 
 
-@app.post('/verify')
+@app.post('/verify', tags=['Authentication'])
 def verify_user(email:EmailModel, token:dict = Depends(is_verified)):
     if isinstance(token,dict):
-        user_email = token['user_id']
+        user_email = token['user_identifier']
         username = user.get_username_from_email(user_email)
         user_object = user.get_from_username(username)
         if user_object.email == email.email:

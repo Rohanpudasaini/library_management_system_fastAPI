@@ -17,14 +17,14 @@ ALGORITHM = config('algorithm')
 
 def generate_JWT(email:str,role:str):
     payload = {
-        'user_id':email, 
+        'user_identifier':email, 
         'role': role,
         # 'expiry': (datetime.datetime.now(datetime.UTC) + datetime.timedelta(minutes=ACCESS_EXPIRE_TIME)).date(),
         'expiry': time.time() + 1200
         }
     encoded_access = jwt.encode(payload,ACCESS_SECRET,algorithm=ALGORITHM)
     payload = {
-        'user_id':email, 
+        'user_identifier':email, 
         'role': role,
         # 'expiry': datetime.datetime.now(datetime.UTC) + datetime.timedelta(days=REFRESH_EXPIRE_TIME)
         'expiry': time.time() + 604800
@@ -56,7 +56,7 @@ def decodRefreshJWT(token:str):
         decode_token = jwt.decode(token,REFRESH_SECRET,ALGORITHM)
         # return decode_token if decode_token['expiry'] >= time.time() else None
         if decode_token['expiry'] >= time.time():
-            new_token, _ = generate_JWT(decode_token['user_id'],decode_token['role'])
+            new_token, _ = generate_JWT(decode_token['user_identifier'],decode_token['role'])
             return new_token
         else:
             raise HTTPException(
