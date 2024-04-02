@@ -121,6 +121,10 @@ class GenreItem(BaseModel):
     name: str
 
 
+class RefreshTokenModel(BaseModel):
+    token:str
+
+
 class UserItem(BaseModel):
     username: str
     email: str

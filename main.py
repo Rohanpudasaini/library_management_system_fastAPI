@@ -1,12 +1,13 @@
 from fastapi import FastAPI, HTTPException, Depends, Request
 from sqlalchemy import Select
 from auth import auth
-from auth.PermissionChecker import PermissionChecker, ContainPermission
+from auth.permission_checker import PermissionChecker, ContainPermission
 import utils.constant_messages as constant_messages
 from models import Book, Magazine, User, Publisher, Genre, Role
 from utils.schema import *
 from utils.helper_function import log_request, log_response, token_in_header
 from database.database_connection import session
+
 
 
 description = """
@@ -31,9 +32,13 @@ app = FastAPI(
 
 @app.middleware('http')
 async def log_middleware(request: Request, call_next):
-    await log_request(request)
-    response = await call_next(request)
-    response = await log_response(response)
+    if request.url.path != '/docs':
+        await log_request(request)
+        response = await call_next(request)
+        if request.url.path != '/openapi.json':
+            response = await log_response(response)
+    else:
+        response = await call_next(request)
     return response
 
 
@@ -503,9 +508,9 @@ async def login(login_schema: LoginScheme):
     }
 
 
-@app.get('/refresh', tags=['Librarian'])
-async def get_new_accessToken(refreshToken: str):
-    token = auth.decodRefreshJWT(refreshToken)
+@app.post('/refresh', tags=['Librarian'])
+async def get_new_accessToken(refreshToken:RefreshTokenModel):
+    token = auth.decodRefreshJWT(refreshToken.token)
     if token:
         return {
             'access_token': token
