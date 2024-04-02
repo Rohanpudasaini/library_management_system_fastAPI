@@ -1,7 +1,7 @@
 from fastapi import FastAPI, HTTPException, Depends, Request
 from sqlalchemy import Select
 from auth import auth
-from auth.PermissionChecker import PermissionChecker
+from auth.PermissionChecker import PermissionChecker, ContainPermission
 import error_constant
 from models import Book, Magazine, User, Publisher, Genre, Role
 from schema import *
@@ -315,7 +315,7 @@ async def borrowed_items(username: str):
 
 
 @app.post('/user/borrow_book', tags=['User'])
-async def user_borrow_book(borrowObject: BorrowBookObject, token=Depends(token_in_header)):
+async def borrow_book(borrowObject: BorrowBookObject, token=Depends(token_in_header)):
     if token['role'] != 'user':
         if borrowObject.username:
             user.borrow_book(borrowObject.username, borrowObject.isbn)
@@ -337,7 +337,7 @@ async def user_borrow_book(borrowObject: BorrowBookObject, token=Depends(token_i
 
 
 @app.post('/user/borrow_magazine', tags=['User'])
-async def user_borrow_magazine(borrowObject: BorrowMagazineObject, token=Depends(token_in_header)):
+async def borrow_magazine(borrowObject: BorrowMagazineObject, token=Depends(token_in_header)):
     if token['role'] != 'user':
         if borrowObject.username:
             user.borrow_magazine(borrowObject.username, borrowObject.issn)
@@ -358,7 +358,7 @@ async def user_borrow_magazine(borrowObject: BorrowMagazineObject, token=Depends
 
 
 @app.post('/user/return_magazine', tags=['User'])
-async def user_return_magazine(returnObject: ReturnMagazineObject, token=Depends(token_in_header)):
+async def return_magazine(returnObject: ReturnMagazineObject, token=Depends(token_in_header)):
     if token['role'] != 'user':
         if returnObject.username:
             fine = user.return_magazine(
@@ -393,7 +393,7 @@ async def user_return_magazine(returnObject: ReturnMagazineObject, token=Depends
 
 
 @app.post('/user/return_book', tags=['User'])
-async def user_return_book(returnObject: ReturnBookObject, token=Depends(token_in_header)):
+async def return_book(returnObject: ReturnBookObject, token=Depends(token_in_header)):
     if token['role'] != 'user':
         if returnObject.username:
             fine = user.return_book(returnObject.username, returnObject.isbn)
@@ -459,15 +459,30 @@ async def get_user(username: str):
     )
 
 
-@app.post('/user', status_code=201, dependencies=[Depends(admin_only)], tags=['User'])
-async def add_user(userItem: UserItem):
-    return user.add(
+
+@app.post('/user', status_code=201, dependencies=[Depends(PermissionChecker(['user:verified']), use_cache=False)], tags=['User'])
+async def add_user(userItem: UserItem, isAdmin:bool = Depends(ContainPermission(['admin:all']))):
+    if not userItem.role_id:
+        return user.add(
+            userItem.username,
+            userItem.email,
+            userItem.address,
+            userItem.phone_number,
+            auth.hash_password(userItem.password)
+        )
+    elif isAdmin:
+        return user.add(
         userItem.username,
         userItem.email,
         userItem.address,
         userItem.phone_number,
-        auth.hash_password(userItem.password)
-    )
+        auth.hash_password(userItem.password),
+        userItem.role_id
+        )
+    else:
+        raise HTTPException(
+            status_code=403,
+            detail="Only admin can add user with different role_id")
 
 
 @app.get('/librarian', tags=['Librarian'], dependencies=[Depends(admin_only)])
@@ -517,7 +532,7 @@ def verify_user(email:EmailModel, token:dict = Depends(is_verified)):
             user_object.role_id = role_id
             session.add(user_object)
             session.commit()
-            return 'Verified Sucesfully'
+            return 'Verified Sucesfully, please login again to get updated token'
         raise HTTPException(
             status_code= 404,
             detail= "This email donot match with the email in our system."

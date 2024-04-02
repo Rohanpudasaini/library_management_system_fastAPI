@@ -127,6 +127,7 @@ class UserItem(BaseModel):
     address: str
     password: str
     phone_number: Annotated[int, Field(ge=1111111111, le=9999999999)]
+    role_id:int|None =None
 
 class EmailModel(BaseModel):
     email:EmailStr

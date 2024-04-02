@@ -75,7 +75,7 @@ def hash_password(password):
     pwd_bytes = password.encode('UTF-8')
     salt = bcrypt.gensalt()
     hashed_password = bcrypt.hashpw(password=pwd_bytes, salt=salt)
-    return hashed_password
+    return hashed_password.decode()
 
 # Check if the provided password matches the stored password (hashed)
 def verify_password(plain_password:str, hashed_password):

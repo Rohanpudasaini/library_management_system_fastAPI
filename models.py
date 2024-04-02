@@ -61,7 +61,7 @@ class User(Base):
         'Magazine', secondary='member_magazine', back_populates='user_id')
     record = relationship('Record', backref='user')
     role_id = mapped_column(Integer, ForeignKey(
-        'roles.id'), nullable=True, default=2)
+        'roles.id'), nullable=True, default=4)
     roles = relationship('Role', back_populates='users')
 
     def get_all_user(self, page, all, limit):
@@ -153,14 +153,24 @@ class User(Base):
             }
         )
 
-    def add(self, username, email, address, phone_number, password):
-        session.add(User(
-            username=username,
-            email=email,
-            address=address,
-            password=password,
-            phone_number=phone_number
-        ))
+    def add(self, username, email, address, phone_number, password, role_id = None):
+        if not role_id:
+            session.add(User(
+                username=username,
+                email=email,
+                address=address,
+                password=password,
+                phone_number=phone_number
+            ))
+        else:
+            session.add(User(
+                username=username,
+                email=email,
+                address=address,
+                password=password,
+                phone_number=phone_number,
+                role_id = role_id
+            ))
         try:
             session.commit()
             return "User Added Sucessfully"
