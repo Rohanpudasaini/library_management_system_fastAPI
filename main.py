@@ -5,6 +5,8 @@ import error_constant
 from models import Book, Magazine, User, Publisher, Genre
 from pydantic import BaseModel, EmailStr, Field, StrictStr
 from logger import logger
+import json
+import copy
 
 
 description = """
@@ -26,9 +28,7 @@ app = FastAPI(
     },
 )
 
-
-@app.middleware('http')
-async def log_middleware(request: Request, call_next):
+async def log_request(request):
     log_dict = {
         'url_host': request.url.hostname,
         'url_path': request.url.path,
@@ -36,12 +36,24 @@ async def log_middleware(request: Request, call_next):
         'method': request.method,
     }
     logger.info(log_dict, extra=log_dict)
+
+async def log_response(response):
+    body = b''.join([section async for section in response.body_iterator])
+    logger.info(json.loads(body.decode()))
+    return Response(content=body, status_code=response.status_code, headers=dict(response.headers))
+
+@app.middleware('http')
+async def log_middleware(request: Request, call_next):
+    await log_request(request)
     response = await call_next(request)
+    response = await log_response(response)
     return response
     # body = b''.join([section async for section in response.body_iterator])
     # #print(json.loads(body.decode()))
     # new_response = Response(content=body, status_code=response.status_code, headers=dict(response.headers))
     # return new_response
+    
+
 
 book = Book()
 magazine = Magazine()
@@ -190,8 +202,7 @@ def token_in_header(Authorization: str = Header()):
 
 
 def admin_only(payload=Depends(token_in_header)):
-    if payload['role'] == 1:
-        print("Hello")
+    if payload['role'] == 'admin':
         return 'Hello'
     raise HTTPException(
         status_code=401,
@@ -311,12 +322,6 @@ async def list_books(
     return {
         'Books': book.get_all(page=page, limit=limit, all=all)
     }
-
-# @app.get('/book', tags=['Book'])
-# async def list_books(numbers:int|None=None,all:bool|None=None):
-#     return {
-#         'Books': book.get_all(numbers,all)
-#     }
 
 
 @app.post('/book', status_code=201, dependencies=[Depends(admin_only)], tags=['Book'])
