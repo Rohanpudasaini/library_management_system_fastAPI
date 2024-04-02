@@ -69,11 +69,6 @@ def decodRefreshJWT(token:str):
                     detail=error_constant.TOKEN_VERIFICATION_FAILED
                 ) 
 
-# def hash_password(password:str):
-    # return pwd_context.hash(password)
-# 
-# def verify_password(plain_password, hash_password):
-    # return pwd_context.verify(plain_password, hash_password)
 
 # Hash a password using bcrypt
 def hash_password(password):
