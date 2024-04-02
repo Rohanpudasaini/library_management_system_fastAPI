@@ -1,5 +1,5 @@
 from sqlalchemy.orm import DeclarativeBase, relationship, mapped_column
-from sqlalchemy import Column, Select, String, DateTime, BigInteger, Integer, ForeignKey, Boolean
+from sqlalchemy import ARRAY, Column, Select, String, DateTime, BigInteger, Integer, ForeignKey, Boolean
 from sqlalchemy.exc import IntegrityError
 from datetime import datetime, timedelta
 from database_connection import session, try_session_commit
@@ -34,7 +34,12 @@ class Role(Base):
     __tablename__ = 'roles'
     id = mapped_column(Integer, primary_key=True)
     name = mapped_column(String, nullable=True)
-    user = relationship('User', back_populates='role')
+    users = relationship('User', back_populates='roles')
+    permission = mapped_column(ARRAY(String),default=['home'])
+    
+    @classmethod
+    def get_role_permissions(cls,role_id):
+        return session.scalar(Select(cls.permission).where(cls.id==role_id))
 # Table schema of User/member
 
 
@@ -57,7 +62,7 @@ class User(Base):
     record = relationship('Record', backref='user')
     role_id = mapped_column(Integer, ForeignKey(
         'roles.id'), nullable=True, default=2)
-    role = relationship('Role', back_populates='user')
+    roles = relationship('Role', back_populates='users')
 
     def get_all_user(self, page, all, limit):
         if all:
@@ -102,8 +107,7 @@ class User(Base):
         Give back the database instance of the user object
         from username
         """
-        user_object = session.query(User).where(
-            User.username == username).one_or_none()
+        user_object = session.scalar(Select(User).where(User.username==username))
         if not user_object:
             raise HTTPException(status_code=404,
                                 detail={

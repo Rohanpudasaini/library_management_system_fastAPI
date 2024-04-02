@@ -1,12 +1,12 @@
-from typing import Annotated
-from fastapi import FastAPI, HTTPException, Depends, Header, Request, Response
+from fastapi import FastAPI, HTTPException, Depends, Request
+from sqlalchemy import Select
 from auth import auth
+from auth.PermissionChecker import PermissionChecker
 import error_constant
-from models import Book, Magazine, User, Publisher, Genre
-from pydantic import BaseModel, EmailStr, Field, StrictStr
-from logger import logger
-import json
-import copy
+from models import Book, Magazine, User, Publisher, Genre, Role
+from schema import *
+from functions import log_request, log_response, token_in_header
+from database_connection import session
 
 
 description = """
@@ -28,19 +28,6 @@ app = FastAPI(
     },
 )
 
-async def log_request(request):
-    log_dict = {
-        'url_host': request.url.hostname,
-        'url_path': request.url.path,
-        'url_query': request.url.query,
-        'method': request.method,
-    }
-    logger.info(log_dict, extra=log_dict)
-
-async def log_response(response):
-    body = b''.join([section async for section in response.body_iterator])
-    logger.info(json.loads(body.decode()))
-    return Response(content=body, status_code=response.status_code, headers=dict(response.headers))
 
 @app.middleware('http')
 async def log_middleware(request: Request, call_next):
@@ -48,11 +35,6 @@ async def log_middleware(request: Request, call_next):
     response = await call_next(request)
     response = await log_response(response)
     return response
-    # body = b''.join([section async for section in response.body_iterator])
-    # #print(json.loads(body.decode()))
-    # new_response = Response(content=body, status_code=response.status_code, headers=dict(response.headers))
-    # return new_response
-    
 
 
 book = Book()
@@ -60,145 +42,17 @@ magazine = Magazine()
 publisher = Publisher()
 genre = Genre()
 user = User()
+role = Role()
 
 
-class BookItem(BaseModel):
-    title: str
-    author: str
-    isbn: Annotated[StrictStr, Field(
-        min_length=13,
-        max_length=13,
-        description="The ISBN number must be of 13 digit",
-    )]
-    price: Annotated[int, Field(
-        gt=0,
-        description="The price of the book must be greater than 0")]
-    genre_id: Annotated[int, Field(
-        gt=0,
-        description="The Genre id must be greater than 0",
-    )]
-    publisher_id: Annotated[int, Field(
-        gt=0,
-        description="The Publisher id must be greater than 0",
-    )]
+def is_verified(token:dict = Depends(token_in_header)):
+    email = token['user_id']
+    username = user.get_username_from_email(email)
+    user_object = user.get_from_username(username)
+    if 'user:verified' in user_object.roles.permission:
+        return "You are already verified"
+    return token
 
-    available_number: Annotated[int, Field(
-        ge=0,
-        description="The Book count must be greater than or equal 0",
-    )]
-
-
-class BorrowBookObject(BaseModel):
-    username: str | None = None
-    isbn: Annotated[StrictStr, Field(
-        min_length=13,
-        max_length=13,
-        description="The ISBN number must be of 13 digit",
-    )]
-    days: int = 15
-
-
-class ReturnBookObject(BaseModel):
-    username: str | None = None
-    isbn: Annotated[StrictStr, Field(
-        min_length=13,
-        max_length=13,
-        description="The ISBN number must be of 13 digit",
-    )]
-
-
-class BorrowMagazineObject(BaseModel):
-    username: str | None = None
-    issn: Annotated[StrictStr, Field(
-        min_length=8,
-        max_length=8,
-        description="The ISSN number must be of 8 digit",
-    )]
-    days: int = 15
-
-
-class ReturnMagazineObject(BaseModel):
-    username: str | None = None
-    issn: Annotated[StrictStr, Field(
-        min_length=8,
-        max_length=8,
-        description="The ISSN number must be of 8 digit",
-    )]
-
-
-class MagazineItem(BaseModel):
-    editor: str
-    title: str
-
-    issn: Annotated[StrictStr, Field(
-        min_length=8,
-        max_length=8,
-        description="The ISSN number must be of 8 digit",
-    )]
-
-    genre_id: Annotated[int, Field(
-        gt=0,
-        description="The Genre id must be greater than 0",
-    )]
-    publisher_id: Annotated[int, Field(
-        gt=0,
-        description="The Publisher id must be greater than 0",
-    )]
-
-    available_number: Annotated[int, Field(
-        ge=0,
-        description="The Magazine count must be greater than or equal 0",
-    )]
-
-    price: Annotated[int, Field(
-        gt=0,
-        description="The price of the book must be greater than 0")]
-
-
-class PublisherItem(BaseModel):
-    name: str
-    phone_number: Annotated[int | None, Field(
-        ge=1111111111, le=9999999999)] = None
-    address: str | None = None
-
-
-class LoginScheme(BaseModel):
-    email: EmailStr = Field(default=None)
-    password: str = Field(default=None)
-
-    model_config = {
-        "json_schema_extra": {
-            'examples': [
-                {
-                    "email": "admin@lms.com",
-                    "password": "admin",
-                }
-            ]
-        },
-    }
-
-
-class GenreItem(BaseModel):
-    name: str
-
-
-class UserItem(BaseModel):
-    username: str
-    email: str
-    address: str
-    password: str
-    phone_number: Annotated[int, Field(ge=1111111111, le=9999999999)]
-
-
-def token_in_header(Authorization: str = Header()):
-    token_splitted = Authorization.split(" ", 1)
-    if token_splitted[0].lower() == 'bearer':
-        return auth.decodAccessJWT(token_splitted[1])
-    else:
-        raise HTTPException(
-            status_code=401,
-            detail="Invalid token Scheme"
-        )
 
 
 def admin_only(payload=Depends(token_in_header)):
@@ -213,7 +67,10 @@ def admin_only(payload=Depends(token_in_header)):
     )
 
 
-@app.get('/', tags=['Home'])
+@app.get(
+    '/', 
+    tags=['Home'], 
+    dependencies=[Depends(PermissionChecker(['user:unverified']))])
 async def home_route():
     return {
         'Message': 'Welcome to the library management system using \
@@ -261,7 +118,7 @@ async def get_publisher(publisherId: int):
 
 @app.post(
     '/publisher',
-    dependencies=[Depends(admin_only)],
+    dependencies=[Depends(PermissionChecker(['admin:all']))],
     tags=['Publisher'],
     status_code=201
 )
@@ -581,11 +438,10 @@ async def get_my_info(token=Depends(token_in_header)):
     }
 
 
-@app.get('/user/{username}', dependencies=[Depends(token_in_header)], tags=['User'])
+@app.get('/user/{username}', dependencies=[Depends(PermissionChecker(['user:verified']))], tags=['User'])
 async def get_user(username: str):
     userFound = user.get_from_username(username)
     if userFound:
-        userFound.__dict__.pop('password')
         return {
             'User': {
                 "user_details": userFound,
@@ -624,11 +480,11 @@ async def list_librarians():
 @app.post('/login', tags=['Librarian'])
 async def login(login_schema: LoginScheme):
     valid_user = user.validate_user(login_schema.email, login_schema.password)
-    token = auth.generate_JWT(login_schema.email, role=valid_user.role.name)
+    token = auth.generate_JWT(login_schema.email, role=valid_user.role_id)
     return {
         'access_token': token[0],
         'refresh_token': token[1],
-        'role': valid_user.role.name
+        'role': valid_user.role_id
     }
 
 
@@ -648,3 +504,23 @@ async def get_new_accessToken(refreshToken: str):
             }
         }
     )
+
+
+@app.post('/verify')
+def verify_user(email:EmailModel, token:dict = Depends(is_verified)):
+    if isinstance(token,dict):
+        user_email = token['user_id']
+        username = user.get_username_from_email(user_email)
+        user_object = user.get_from_username(username)
+        if user_object.email == email.email:
+            role_id = session.scalar(Select(Role.id).where(Role.name == 'verified user'))
+            user_object.role_id = role_id
+            session.add(user_object)
+            session.commit()
+            return 'Verified Sucesfully'
+        raise HTTPException(
+            status_code= 404,
+            detail= "This email donot match with the email in our system."
+        )
+    else:
+        return token
