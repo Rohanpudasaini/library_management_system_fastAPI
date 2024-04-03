@@ -5,9 +5,12 @@ from auth.permission_checker import PermissionChecker, ContainPermission
 import utils.constant_messages as constant_messages
 from models import Book, Magazine, User, Publisher, Genre, Role
 from utils.schema import *
-from utils.helper_function import log_request, log_response, token_in_header
+from utils.helper_function import log_request, log_response
+from utils.helper_function import token_in_header
 from database.database_connection import session
 
+# from fastapi.security import OAuth2PasswordBearer
+# token_in_header = OAuth2PasswordBearer(tokenUrl="/login")
 
 
 description = """
@@ -554,7 +557,8 @@ def get_all_available_role():
 @app.post(
     '/role', 
     dependencies=[Depends(PermissionChecker(permissions_required=['admin:all']))],
-    tags=['Authentication']
+    tags=['Authentication'],
+    status_code=201
     )
 def add_role(roleModel:RoleModel):
     # print(roleModel.name, roleModel.permission)
