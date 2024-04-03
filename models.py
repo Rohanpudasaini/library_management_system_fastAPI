@@ -1,5 +1,5 @@
 from sqlalchemy.orm import DeclarativeBase, relationship, mapped_column
-from sqlalchemy import ARRAY, Column, Select, String, DateTime, BigInteger, Integer, ForeignKey, Boolean
+from sqlalchemy import Select, String, DateTime, BigInteger, Integer, ForeignKey, Boolean
 from sqlalchemy.exc import IntegrityError
 from datetime import datetime, timedelta
 from database.database_connection import session, try_session_commit
@@ -16,18 +16,23 @@ class Base(DeclarativeBase):
 # Assocication table schema of member and book
 class MemberBook(Base):
     __tablename__ = 'member_book'
-    id = Column(Integer, primary_key=True)
-    user_id = Column('user_id', Integer, ForeignKey('users.id'))
-    book_id = Column('book_id', String, ForeignKey('books.isbn_number'))
+    id = mapped_column(Integer, primary_key=True)
+    user_id = mapped_column('user_id', Integer, ForeignKey('users.id'))
+    book_id = mapped_column('book_id', String, ForeignKey('books.isbn_number'))
 
 
 # Assocication table schema of member and magazine
 class MemberMagazine(Base):
     __tablename__ = 'member_magazine'
-    id = Column(Integer, primary_key=True)
-    user_id = Column('user_id', Integer, ForeignKey('users.id'))
-    magazine_id = Column('magazine_id', String,
-                         ForeignKey('magazines.issn_number'))
+    id = mapped_column(Integer, primary_key=True)
+    user_id = mapped_column(Integer, ForeignKey('users.id'))
+    magazine_id = mapped_column(String, ForeignKey('magazines.issn_number'))
+
+class RolePermission(Base):
+    __tablename__ = 'role_permission'
+    id = mapped_column(Integer,primary_key=True)
+    role_id = mapped_column(Integer, ForeignKey('roles.id'))
+    permission_id = mapped_column(Integer, ForeignKey('permissions.id'))
 
 
 class Role(Base):
@@ -35,12 +40,34 @@ class Role(Base):
     id = mapped_column(Integer, primary_key=True)
     name = mapped_column(String, nullable=True)
     users = relationship('User', back_populates='roles')
-    permission = mapped_column(ARRAY(String),default=['home'])
+    # permission_id = mapped_column(Integer, ForeignKey('permissions.id'))
+    permission_id = relationship('Permission', back_populates='role_id',secondary='role_permission', lazy='dynamic')
     
     @classmethod
     def get_role_permissions(cls,role_id):
-        return session.scalar(Select(cls.permission).where(cls.id==role_id))
-# Table schema of User/member
+        return session.scalars(Select(cls.permission_id).where(cls.id==role_id)).all()
+    
+    @classmethod
+    def role_got_permission(cls,permission_name:str, role_id:int):
+        permission_id = Permission.get_permission_id(permission_name)
+        is_permitted = session.scalar(
+            Select(RolePermission).where(
+                RolePermission.role_id==role_id,
+                RolePermission.permission_id == permission_id
+                ))
+        # return session.scalar(Select(cls.id).where(cls.name==permission_name))
+        return is_permitted
+
+class Permission(Base):
+    __tablename__ = 'permissions'
+    id = mapped_column(Integer, primary_key=True)
+    name = mapped_column(String, nullable=True)
+    # role_id = mapped_column(Integer,ForeignKey('roles.id')) 
+    role_id = relationship('Role', back_populates='permission_id', secondary='role_permission', lazy='dynamic')
+    
+    @classmethod
+    def get_permission_id(cls,permission_name:str):
+        return session.scalar(Select(cls.id).where(cls.name==permission_name))
 
 
 class User(Base):
@@ -66,7 +93,7 @@ class User(Base):
 
     def get_all_user(self, page, all, limit):
         if all:
-            statement = Select(User).where(User.role == 2)
+            statement = Select(User).where(User.role_id >= 2)
             users = session.execute(statement).all()
         else:
             statement = Select(User).offset((page-1)*limit).limit(limit)
@@ -76,7 +103,7 @@ class User(Base):
 
     def get_all_librarian(self, page, all, limit):
         if all:
-            statement = Select(User).where(User.role == 1)
+            statement = Select(User).where(User.role_id == 1)
             users = session.execute(statement).all()
         else:
             statement = Select(User).offset((page-1)*limit).limit(limit)
@@ -446,10 +473,10 @@ class User(Base):
 # Table schema of publisher
 class Publisher(Base):
     __tablename__ = 'publishers'
-    id = Column(Integer, primary_key=True)
-    name = Column(String(50), nullable=False, unique=True)
-    address = Column(String(200))
-    phone_number = Column(BigInteger())
+    id = mapped_column(Integer, primary_key=True)
+    name = mapped_column(String(50), nullable=False, unique=True)
+    address = mapped_column(String(200))
+    phone_number = mapped_column(BigInteger())
     books = relationship('Book', backref='publisher')
     magazine = relationship('Magazine', backref='publisher')
 
@@ -492,16 +519,15 @@ class Publisher(Base):
 # Table schema of Book
 class Book(Base):
     __tablename__ = 'books'
-    isbn_number = Column(String(15), nullable=False,
+    isbn_number = mapped_column(String(15), nullable=False,
                          unique=True, primary_key=True, autoincrement=False)
-    title = Column(String(100), nullable=False)
-    author = Column(String(20), nullable=False, default='Folklore')
-    price = Column(Integer(), nullable=False)
-    user_id = relationship(
-        'User', secondary='member_book', back_populates='book_id')
-    genre_id = Column(Integer(), ForeignKey('genre.id'))
-    publisher_id = Column(Integer, ForeignKey('publishers.id'))
-    available_number = Column(Integer, default=0)
+    title = mapped_column(String(100), nullable=False)
+    author = mapped_column(String(20), nullable=False, default='Folklore')
+    price = mapped_column(Integer(), nullable=False)
+    user_id = relationship('User', secondary='member_book', back_populates='book_id')
+    genre_id = mapped_column(Integer(), ForeignKey('genre.id'))
+    publisher_id = mapped_column(Integer, ForeignKey('publishers.id'))
+    available_number = mapped_column(Integer, default=0)
     record = relationship('Record', backref='book')
 
 
@@ -561,16 +587,16 @@ class Book(Base):
 # Table schema of Magazine
 class Magazine(Base):
     __tablename__ = 'magazines'
-    issn_number = Column(String(15), nullable=False,
+    issn_number = mapped_column(String(15), nullable=False,
                          unique=True, primary_key=True, autoincrement=False)
-    title = Column(String(100), nullable=False)
-    editor = Column(String(20), nullable=False, default='Folklore')
-    price = Column(Integer(), nullable=False)
+    title = mapped_column(String(100), nullable=False)
+    editor = mapped_column(String(20), nullable=False, default='Folklore')
+    price = mapped_column(Integer(), nullable=False)
     user_id = relationship(
         'User', secondary='member_magazine', back_populates='magazine_id')
-    genre_id = Column(Integer(), ForeignKey('genre.id'))
-    publisher_id = Column(Integer, ForeignKey('publishers.id'))
-    available_number = Column(Integer, default=0)
+    genre_id = mapped_column(Integer(), ForeignKey('genre.id'))
+    publisher_id = mapped_column(Integer, ForeignKey('publishers.id'))
+    available_number = mapped_column(Integer, default=0)
     record = relationship('Record', backref='magazine')
 
     def get_all(self, page, all, limit):
@@ -628,8 +654,8 @@ class Magazine(Base):
 # Table schema of Genre
 class Genre(Base):
     __tablename__ = 'genre'
-    id = Column(Integer(), primary_key=True)
-    name = Column(String(50), nullable=False, unique=True)
+    id = mapped_column(Integer(), primary_key=True)
+    name = mapped_column(String(50), nullable=False, unique=True)
     books = relationship('Book', backref='genre')
     magazine = relationship('Magazine', backref='genre')
     record = relationship('Record', backref='genre')
@@ -672,13 +698,13 @@ class Genre(Base):
 # Table schema for Record
 class Record(Base):
     __tablename__ = 'records'
-    id = Column(Integer(), primary_key=True)
-    member_id = Column(Integer, ForeignKey('users.id'))
-    book_id = Column(String, ForeignKey('books.isbn_number'))
-    magazine_id = Column(String, ForeignKey('magazines.issn_number'))
-    genre_id = Column(Integer, ForeignKey('genre.id'))
-    issued_date = Column(DateTime(), default=datetime.utcnow().date())
-    returned_date = Column(DateTime(), default=datetime.utcnow().date())
-    expected_return_date = Column(DateTime(), default=(
+    id = mapped_column(Integer(), primary_key=True)
+    member_id = mapped_column(Integer, ForeignKey('users.id'))
+    book_id = mapped_column(String, ForeignKey('books.isbn_number'))
+    magazine_id = mapped_column(String, ForeignKey('magazines.issn_number'))
+    genre_id = mapped_column(Integer, ForeignKey('genre.id'))
+    issued_date = mapped_column(DateTime(), default=datetime.utcnow().date())
+    returned_date = mapped_column(DateTime(), default=datetime.utcnow().date())
+    expected_return_date = mapped_column(DateTime(), default=(
         datetime.utcnow().date() + timedelta(days=15)))
-    returned = Column(Boolean, default=False)
+    returned = mapped_column(Boolean, default=False)

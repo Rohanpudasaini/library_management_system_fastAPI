@@ -10,8 +10,10 @@ class PermissionChecker:
     def __call__(self, user:dict = Depends(token_in_header)):
         for permission_required in self.permissions_required:
             print(permission_required)
-            print(Role.get_role_permissions(user['role']))
-            if permission_required not in Role.get_role_permissions(user['role']):
+            # print(Role.get_role_permissions(user['role']))
+            is_permitted = Role.role_got_permission(permission_required,user['role'])
+            # if permission_required not in Role.get_role_permissions(user['role']):
+            if not is_permitted:
                 raise HTTPException(
                     status_code=403,
                     detail="Not enough permissions to access this resource")
@@ -24,8 +26,10 @@ class ContainPermission:
     def __call__(self, user:dict = Depends(token_in_header)):
         for permission_required in self.permissions_required:
             print(permission_required)
-            print(Role.get_role_permissions(user['role']))
-            if permission_required not in Role.get_role_permissions(user['role']):
+            # print(Role.get_role_permissions(user['role']))
+            is_permitted = Role.role_got_permission(permission_required,user['role'])            
+            # if permission_required not in Role.get_role_permissions(user['role']):
+            if not is_permitted:
                 # raise HTTPException(
                 #     status_code=403,
                 #     detail="Not enough permissions to access this resource")

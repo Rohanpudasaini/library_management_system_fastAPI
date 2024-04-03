@@ -54,7 +54,11 @@ def is_verified(token:dict = Depends(token_in_header)):
     email = token['user_identifier']
     username = user.get_username_from_email(email)
     user_object = user.get_from_username(username)
-    if 'user:verified' in user_object.roles.permission:
+    # print("*"*50)
+    # print((session.scalars(user_object.roles.permission_id).all()))
+    # print("*"*50)
+    # print([permission.name for permission in (session.scalars(user_object.roles.permission_id).all())])
+    if 'user:verified' in [permission.name for permission in (session.scalars(user_object.roles.permission_id).all()) ]:
         return "You are already verified"
     return token
 
