@@ -54,10 +54,6 @@ def is_verified(token:dict = Depends(token_in_header)):
     email = token['user_identifier']
     username = user.get_username_from_email(email)
     user_object = user.get_from_username(username)
-    # print("*"*50)
-    # print((session.scalars(user_object.roles.permission_id).all()))
-    # print("*"*50)
-    # print([permission.name for permission in (session.scalars(user_object.roles.permission_id).all())])
     if 'user:verified' in [permission.name for permission in (session.scalars(user_object.roles.permission_id).all()) ]:
         return "You are already verified"
     return token
@@ -548,3 +544,20 @@ def verify_user(email:EmailModel, token:dict = Depends(is_verified)):
         )
     else:
         return token
+
+
+@app.get('/role')
+def get_all_available_role():
+    return session.scalars(Select(Role)).all()
+
+
+@app.post('/role')
+def add_role(roleModel:RoleModel):
+    # print(roleModel.name, roleModel.permission)
+    result = Role.add(roleModel.name, roleModel.permission)
+    if not result:
+        return {"sucess":"Sucessfully added role with provided permissions"}
+    return {
+        "Sucess": "Sucessfully added role but wasn't able to add following permission as they don't exsist",
+        "Error": result
+    }

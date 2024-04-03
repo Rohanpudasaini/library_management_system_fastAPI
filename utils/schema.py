@@ -135,3 +135,7 @@ class UserItem(BaseModel):
 
 class EmailModel(BaseModel):
     email:EmailStr
+
+class RoleModel(BaseModel):
+    name:str
+    permission:list[str]

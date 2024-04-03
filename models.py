@@ -38,15 +38,30 @@ class RolePermission(Base):
 class Role(Base):
     __tablename__ = 'roles'
     id = mapped_column(Integer, primary_key=True)
-    name = mapped_column(String, nullable=True)
+    name = mapped_column(String, nullable=True, unique=True)
     users = relationship('User', back_populates='roles')
     # permission_id = mapped_column(Integer, ForeignKey('permissions.id'))
     permission_id = relationship('Permission', back_populates='role_id',secondary='role_permission', lazy='dynamic')
     
-    @classmethod
-    def get_role_permissions(cls,role_id):
-        return session.scalars(Select(cls.permission_id).where(cls.id==role_id)).all()
     
+    @classmethod
+    def add(cls, name:str, permission:list[str]):
+        # permission_object_list = [
+        #     Permission.get_permission_object(permission_name) for permission_name in permission]
+        permission_object_list = []
+        error_permission_list = []
+        for permission_name  in permission:
+            permission_object = Permission.get_permission_object(permission_name)
+            if not permission_object:
+                error_permission_list.append(permission_name)
+                continue
+            permission_object_list.append(permission_object)
+        role_to_add = cls(name=name,permission_id=permission_object_list)
+        session.add(role_to_add)
+        try_session_commit(session)
+        return error_permission_list
+
+
     @classmethod
     def role_got_permission(cls,permission_name:str, role_id:int):
         permission_id = Permission.get_permission_id(permission_name)
@@ -55,19 +70,22 @@ class Role(Base):
                 RolePermission.role_id==role_id,
                 RolePermission.permission_id == permission_id
                 ))
-        # return session.scalar(Select(cls.id).where(cls.name==permission_name))
         return is_permitted
 
 class Permission(Base):
     __tablename__ = 'permissions'
     id = mapped_column(Integer, primary_key=True)
-    name = mapped_column(String, nullable=True)
+    name = mapped_column(String, nullable=True, unique=True)
     # role_id = mapped_column(Integer,ForeignKey('roles.id')) 
     role_id = relationship('Role', back_populates='permission_id', secondary='role_permission', lazy='dynamic')
     
     @classmethod
     def get_permission_id(cls,permission_name:str):
         return session.scalar(Select(cls.id).where(cls.name==permission_name))
+    
+    @classmethod
+    def get_permission_object(cls,permission_name:str):
+        return session.scalar(Select(cls).where(cls.name==permission_name))
 
 
 class User(Base):
