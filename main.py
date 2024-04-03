@@ -59,19 +59,6 @@ def is_verified(token:dict = Depends(token_in_header)):
     return token
 
 
-
-def admin_only(payload=Depends(token_in_header)):
-    if payload['role'] == 'admin':
-        return 'Hello'
-    raise HTTPException(
-        status_code=401,
-        detail={
-            'error': "UNAUTHORIZED",
-            'message': "You don't have access to view this endpoint"
-        }
-    )
-
-
 @app.get(
     '/', 
     tags=['Home'], 
@@ -166,7 +153,7 @@ async def get_genre(genreId: int):
     )
 
 
-@app.post('/genre', status_code=201, dependencies=[Depends(admin_only)], tags=['Genre'])
+@app.post('/genre', status_code=201, dependencies=[Depends(PermissionChecker(['user:verified']))], tags=['Genre'])
 async def add_genre(genreItem: GenreItem):
     return {
         'result': genre.add(
@@ -186,7 +173,7 @@ async def list_books(
     }
 
 
-@app.post('/book', status_code=201, dependencies=[Depends(admin_only)], tags=['Book'])
+@app.post('/book', status_code=201, dependencies=[Depends(PermissionChecker(['user:verified']))], tags=['Book'])
 async def add_book(book_item: BookItem):
     if await get_genre(book_item.genre_id):
         if await get_publisher(book_item.publisher_id):
@@ -248,7 +235,7 @@ async def list_magazines(
     }
 
 
-@app.post('/magazine', status_code=201, dependencies=[Depends(admin_only)], tags=['Magazine'])
+@app.post('/magazine', status_code=201, dependencies=[Depends(PermissionChecker(['user:verified']))], tags=['Magazine'])
 async def add_magazine(magazine_item: MagazineItem):
     if await get_genre(magazine_item.genre_id):
         if await get_publisher(magazine_item.publisher_id):
@@ -299,7 +286,7 @@ async def get_magazine(issn: str):
                 }})
 
 
-@app.get('/user', dependencies=[Depends(admin_only)], tags=['User'])
+@app.get('/user', dependencies=[Depends(PermissionChecker(['user:verified']))], tags=['User'])
 async def list_users(
     page: int | None = 1,
     all: bool | None = None,
@@ -310,7 +297,7 @@ async def list_users(
     }
 
 
-@app.get('/user/borrowed', dependencies=[Depends(admin_only)], tags=['User'])
+@app.get('/user/borrowed', dependencies=[Depends(PermissionChecker(['user:all']))], tags=['User'])
 async def borrowed_items(username: str):
     return {
         "Username": username,
@@ -443,6 +430,15 @@ async def get_my_info(token=Depends(token_in_header)):
     }
 
 
+@app.get('/me/borrowed', tags=['User'])
+async def borrowed_items(token = Depends(token_in_header)):
+    username = user.get_username_from_email(token['user_identifier'])
+    return {
+        "Username": username,
+        'Borrowed': user.get_all_borrowed(username)
+
+    }
+
 @app.get('/user/{username}', dependencies=[Depends(PermissionChecker(['user:verified']))], tags=['User'])
 async def get_user(username: str):
     userFound = user.get_from_username(username)
@@ -490,7 +486,7 @@ async def add_user(userItem: UserItem, isAdmin:bool = Depends(ContainPermission(
             detail="Only admin can add user with different role_id")
 
 
-@app.get('/admin', tags=['User'], dependencies=[Depends(admin_only)])
+@app.get('/admin', tags=['User'], dependencies=[Depends(PermissionChecker(['admin:all']))])
 async def list_admin():
     return {
         'Users': user.get_all_librarian()
@@ -546,12 +542,20 @@ def verify_user(email:EmailModel, token:dict = Depends(is_verified)):
         return token
 
 
-@app.get('/role')
+@app.get(
+    '/role', 
+    dependencies=[Depends(PermissionChecker(permissions_required=['user:verified']))],
+    tags=['Authentication']
+    )
 def get_all_available_role():
     return session.scalars(Select(Role)).all()
 
 
-@app.post('/role')
+@app.post(
+    '/role', 
+    dependencies=[Depends(PermissionChecker(permissions_required=['admin:all']))],
+    tags=['Authentication']
+    )
 def add_role(roleModel:RoleModel):
     # print(roleModel.name, roleModel.permission)
     result = Role.add(roleModel.name, roleModel.permission)
