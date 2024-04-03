@@ -5,7 +5,8 @@ from auth.permission_checker import PermissionChecker, ContainPermission
 import utils.constant_messages as constant_messages
 from models import Book, Magazine, User, Publisher, Genre, Role
 from utils.schema import *
-from utils.helper_function import log_request, log_response
+# from utils.helper_function import log_request, log_response, LogMiddleware
+from utils.helper_function import  LogMiddleware
 from utils.helper_function import token_in_header
 from database.database_connection import session
 
@@ -32,17 +33,18 @@ app = FastAPI(
     },
 )
 
+app.add_middleware(LogMiddleware, exclude_paths=['/docs', '/openapi.json', '/login'])
 
-@app.middleware('http')
-async def log_middleware(request: Request, call_next):
-    if request.url.path != '/docs':
-        await log_request(request)
-        response = await call_next(request)
-        if request.url.path != '/openapi.json':
-            response = await log_response(response)
-    else:
-        response = await call_next(request)
-    return response
+# @app.middleware('http')
+# async def log_middleware(request: Request, call_next):
+#     if request.url.path != '/docs':
+#         await log_request(request)
+#         response = await call_next(request)
+#         if request.url.path != '/openapi.json':
+#             response = await log_response(response)
+#     else:
+#         response = await call_next(request)
+#     return response
 
 
 book = Book()
