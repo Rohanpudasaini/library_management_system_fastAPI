@@ -6,6 +6,7 @@ from auth.permission_checker import PermissionChecker, ContainPermission
 import utils.constant_messages as constant_messages
 from models import Book, Magazine, User, Publisher, Genre, Role
 from utils.schema import *
+from utils import send_mail
 # from utils.helper_function import log_request, log_response, LogMiddleware
 from utils.helper_function import  LogMiddleware
 from utils.helper_function import token_in_header
@@ -541,6 +542,7 @@ def verify_user(email:EmailModel, token:dict = Depends(is_verified)):
             user_object.role_id = role_id
             session.add(user_object)
             session.commit()
+            send_mail.send_mail(email.email)
             return 'Verified Sucesfully, please login again to get updated token'
         raise HTTPException(
             status_code= 404,
