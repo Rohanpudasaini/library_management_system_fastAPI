@@ -11,7 +11,6 @@ def send_mail(email_to_send_to:str):
     message['Subject'] = "Welcome to Library Management System"
     message['From'] = EMAIL
     message['To'] = email_to_send_to
-    name = 'Rohan'
     message.set_content("welcome to the library management system, Your email is sucessfully verified.")
     message.add_alternative(html_message, subtype='html')
 
