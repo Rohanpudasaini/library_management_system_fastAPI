@@ -1,4 +1,5 @@
-from fastapi import FastAPI, HTTPException, Depends, Request
+from fastapi import FastAPI, HTTPException, Depends, Request, Response
+from fastapi.responses import JSONResponse, RedirectResponse
 from sqlalchemy import Select
 from auth import auth
 from auth.permission_checker import PermissionChecker, ContainPermission
@@ -10,8 +11,8 @@ from utils.helper_function import  LogMiddleware
 from utils.helper_function import token_in_header
 from database.database_connection import session
 
-# from fastapi.security import OAuth2PasswordBearer
-# token_in_header = OAuth2PasswordBearer(tokenUrl="/login")
+# from fastapi.security import HTTPBearer
+# token_in_header = HTTPBearer()
 
 
 description = """
@@ -33,7 +34,7 @@ app = FastAPI(
     },
 )
 
-app.add_middleware(LogMiddleware, exclude_paths=['/docs', '/openapi.json', '/login'])
+app.add_middleware(LogMiddleware, exclude_paths=['/docs', '/openapi.json', '/login','/refresh'])
 
 # @app.middleware('http')
 # async def log_middleware(request: Request, call_next):
@@ -426,6 +427,7 @@ async def return_book(returnObject: ReturnBookObject, token=Depends(token_in_hea
 
 @app.get('/me', tags=['User'])
 async def get_my_info(token=Depends(token_in_header)):
+    # token = auth.decodAccessJWT(token.credentials)
     username = user.get_username_from_email(token['user_identifier'])
     user_details = user.get_from_username(username)
     return {
@@ -437,6 +439,7 @@ async def get_my_info(token=Depends(token_in_header)):
 
 @app.get('/me/borrowed', tags=['User'])
 async def borrowed_items(token = Depends(token_in_header)):
+    # token = auth.decodAccessJWT(token.credentials)
     username = user.get_username_from_email(token['user_identifier'])
     return {
         "Username": username,
@@ -571,3 +574,10 @@ def add_role(roleModel:RoleModel):
         "Sucess": "Sucessfully added role but wasn't able to add following permission as they don't exsist",
         "Error": result
     }
+    
+@app.get("/portal")
+async def get_portal(teleport: bool = False) -> Response:
+    if teleport:
+        return RedirectResponse(url="https://www.youtube.com/watch?v=dQw4w9WgXcQ")
+    return JSONResponse(content={"message": "Here's your interdimensional portal. Request again with teleport = true as query"})
+    # return {"message": "Here's your interdimensional portal."}
