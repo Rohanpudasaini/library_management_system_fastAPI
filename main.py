@@ -1,4 +1,4 @@
-from fastapi import FastAPI, HTTPException, Depends, Request, Response
+from fastapi import FastAPI, HTTPException, Depends, Request, Response, BackgroundTasks
 from fastapi.responses import JSONResponse, RedirectResponse
 from sqlalchemy import Select
 from auth import auth
@@ -532,7 +532,7 @@ async def get_new_accessToken(refreshToken:RefreshTokenModel):
 
 
 @app.post('/verify', tags=['Authentication'])
-def verify_user(email:EmailModel, token:dict = Depends(is_verified)):
+async def verify_user(background_task:BackgroundTasks,email:EmailModel, token:dict = Depends(is_verified)):
     if isinstance(token,dict):
         user_email = token['user_identifier']
         username = user.get_username_from_email(user_email)
@@ -542,11 +542,12 @@ def verify_user(email:EmailModel, token:dict = Depends(is_verified)):
             user_object.role_id = role_id
             session.add(user_object)
             session.commit()
-            send_mail.send_mail(email.email)
-            return 'Verified Sucesfully, please login again to get updated token'
+            background_task.add_task(send_mail.send_verification_mail,email.email,username)
+            # await send_mail.send_mail(email.email)
+            return 'Verified Successfully, please login again to get updated token'
         raise HTTPException(
             status_code= 404,
-            detail= "This email donot match with the email in our system."
+            detail= "This email does not match with the email in our system."
         )
     else:
         return token
