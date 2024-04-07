@@ -2,6 +2,6 @@
 __pycache__/
 .vscode/
 *.ini
-test*/
+test*
 *.log
 docker-compose.yml

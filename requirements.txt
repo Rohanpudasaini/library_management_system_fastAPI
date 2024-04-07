@@ -15,3 +15,4 @@ passlib[bcrypt]
 python-multipart
 uvloop==0.19.0
 logtail-python==0.2.10
+ipython

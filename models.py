@@ -119,13 +119,9 @@ class User(Base):
         users = [user[0] for user in users]
         return users
 
-    def get_all_librarian(self, page, all, limit):
-        if all:
-            statement = Select(User).where(User.role_id == 1)
-            users = session.execute(statement).all()
-        else:
-            statement = Select(User).offset((page-1)*limit).limit(limit)
-            users = session.execute(statement)
+    def get_all_librarian(self,):
+        statement = Select(User).where(User.role_id == 1)
+        users = session.execute(statement).all()
         users = [user[0] for user in users]
         return users
 

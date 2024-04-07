@@ -2,6 +2,8 @@ from fastapi import Depends, HTTPException
 from utils.helper_function import token_in_header
 from models import Role
 
+# from fastapi.security import OAuth2PasswordBearer
+# token_in_header = OAuth2PasswordBearer(tokenUrl="/login")
 
 class PermissionChecker:
     def __init__(self, permissions_required: list):
