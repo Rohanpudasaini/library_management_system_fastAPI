@@ -70,8 +70,10 @@ class LogMiddleware(BaseHTTPMiddleware):
             body = b''.join([section async for section in response.body_iterator])
             response_body = body.decode('utf-8')
             print(response.status_code)
-            if response.status_code >=400 and response.status_code <600:
+            if response.status_code >=400 and response.status_code <500:
                 logger.warning(f"Response body: {response_body} Process time: {process_time}")
+            elif response.status_code >=500 and response.status_code <600:
+                logger.error(f"Response body: {response_body} Process time: {process_time}")
             else:
                 logger.info(f"Response body: {response_body} Process time: {process_time}")
             # Create a new response with the logged body to ensure it's not consumed
