@@ -24,7 +24,12 @@ async def log_response(response):
     return Response(content=body, status_code=response.status_code, headers=dict(response.headers))
 
 
-def token_in_header(Authorization: str = Header()):
+def token_in_header(Authorization: str = Header(None)):
+    if Authorization is None:
+        raise HTTPException(
+            status_code=401,
+            detail="Authorization header is missing"
+        )
     token_splitted = Authorization.split(" ", 1)
     if token_splitted[0].lower() == 'bearer':
         return auth.decodAccessJWT(token_splitted[1])
@@ -61,9 +66,14 @@ class LogMiddleware(BaseHTTPMiddleware):
         process_time = time.time() - start_time
 
         if response:
+            print(type(response))
             body = b''.join([section async for section in response.body_iterator])
             response_body = body.decode('utf-8')
-            logger.info(f"Response body: {response_body} Process time: {process_time}")
+            print(response.status_code)
+            if response.status_code >=400 and response.status_code <600:
+                logger.warning(f"Response body: {response_body} Process time: {process_time}")
+            else:
+                logger.info(f"Response body: {response_body} Process time: {process_time}")
             # Create a new response with the logged body to ensure it's not consumed
             response.headers['X-Process-Time'] = str(process_time)
             return Response(content=body, status_code=response.status_code, headers=dict(response.headers), media_type=response.media_type)

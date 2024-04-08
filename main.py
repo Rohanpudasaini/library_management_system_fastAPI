@@ -8,7 +8,7 @@ from models import Book, Magazine, User, Publisher, Genre, Role
 from utils.schema import *
 from utils import send_mail
 # from utils.helper_function import log_request, log_response, LogMiddleware
-from utils.helper_function import  LogMiddleware
+from utils.helper_function import  LogMiddleware, logger
 from utils.helper_function import token_in_header
 from database.database_connection import session
 
